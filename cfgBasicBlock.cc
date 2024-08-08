@@ -246,14 +246,6 @@ void cfgBasicBlock::print() {
 
 cfgBasicBlock* cfgBasicBlock::splitBB(uint64_t splitpc) {
   ssize_t offs = -1;
-#if 0
-  std::cout << "old:\n";
-  for(size_t i = 0, n = rawInsns.size(); i < n; i++) {
-    std::cout << std::hex << rawInsns.at(i).second << std::dec << " : ";
-    disassemble(std::cout, rawInsns.at(i).first, rawInsns.at(i).second);
-    std::cout << "\n";
-  }
-#endif
   
   cfgBasicBlock *sbb = new cfgBasicBlock(bb);
   sbb->rawInsns.clear();
@@ -273,23 +265,6 @@ cfgBasicBlock* cfgBasicBlock::splitBB(uint64_t splitpc) {
   }
   rawInsns.erase(rawInsns.begin()+offs,rawInsns.end());
   
-#if 0
-  std::cout << "split at pc " << std::hex << splitpc << std::dec << "\n";
-  std::cout << "split 0:\n";
-  for(size_t i = 0, n = rawInsns.size(); i < n; i++) {
-    std::cout << std::hex << rawInsns.at(i).second << std::dec << " : ";
-    disassemble(std::cout, rawInsns.at(i).first, rawInsns.at(i).second);
-    std::cout << "\n";
-  }
-  
-  std::cout << "split 1:\n";
-  for(size_t i = 0, n = sbb->rawInsns.size(); i < n; i++) {
-    std::cout << std::hex << sbb->rawInsns.at(i).second << std::dec << " : ";
-    disassemble(std::cout, sbb->rawInsns.at(i).first, sbb->rawInsns.at(i).second);
-    std::cout << "\n";
-  }
-#endif
-  
   /* attribute all successors to sbb */
   for(cfgBasicBlock *nbb : succs) {
     //std::cout << "succ @ " << std::hex <<  nbb->getEntryAddr() << std::dec << "\n";
@@ -299,23 +274,9 @@ cfgBasicBlock* cfgBasicBlock::splitBB(uint64_t splitpc) {
     sbb->addSuccessor(nbb);
   }
   succs.clear();
-#if 0
-  std::cout << std::hex
-	    << getEntryAddr()
-	    << " has a succ @ "
-	    <<  sbb->getEntryAddr()
-	    << std::dec
-	    << "\n";
-#endif
   addSuccessor(sbb);
 
   assert(succs.size() == 1);
-#if 0
-  for(cfgBasicBlock *nbb : succs) {
-    std::cout << std::hex << getEntryAddr()
-	      << " has a succ @ "  <<  nbb->getEntryAddr() << std::dec << "\n";
-  }
-#endif
   hasTermBranchOrJump = false;
   
   return sbb;
@@ -564,7 +525,7 @@ uint64_t cfgBasicBlock::getEntryAddr() const {
     return rawInsns.at(0).second;
   }
   else if(bb != nullptr) {
-    assert(false);
+    die();
     return bb->getEntryAddr();
   }
   return ~(0UL);

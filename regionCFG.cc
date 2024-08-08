@@ -578,62 +578,30 @@ bool regionCFG::buildCFG(std::vector<std::vector<basicBlock*> > &regions) {
 	   heads.size());
     die();
   }
-
+  printf("%d\n", __LINE__);
   head = regions.at(0).at(0);
+  printf("%d\n", __LINE__);  
   if(head==nullptr) {
     die();
   }
 
-  if(globals::verbose and false) {
-    std::cerr << "regionCFG block @ 0x"
-	      << std::hex << head->getEntryAddr()
-	      << std::dec
-	      << " with " << blocks.size()
-	      << " basicblocks\n";
-  }
+  
+  std::cerr << "regionCFG block @ 0x"
+	    << std::hex << head->getEntryAddr()
+	    << std::dec
+	    << " with " << blocks.size()
+	    << " basicblocks\n";
 
   blockvec.reserve(blocks.size());
   for(auto bb : blocks) {
     blockvec.push_back(bb);
   }
   std::sort(blockvec.begin(), blockvec.end(), sortByIcnt<basicBlock*>());
-  
-  std::list<basicBlock*> topoblocks;
-  std::map<basicBlock*, double> regionProb;
-  
-  basicBlock::toposort(head, blocks, topoblocks);
-  
-  assert(*(topoblocks.begin()) == head);
-
-  for(basicBlock* bb : topoblocks) {
-    double pr = 1.0;
-    if(bb != head) {
-      pr = regionProb.at(bb);
-    }
-    for(basicBlock *nbb : bb->getSuccs()) {
-      regionProb[nbb] += (pr * bb->edgeWeight(nbb->getEntryAddr()));
-    }
-  }
-  headProb = regionProb.at(head);
-
-  //for(auto bb : blocks) {
-    //uint32_t tgt,fallthru;
-    //if(not(bb->hasTermDirectBranchOrJump(tgt, fallthru))) {
-    //if(bb->getSuccs().size() > 2) {
-    //std::cout << *bb;
-    //}
-    //assert(bb->getSuccs().size() == 1);
-  //}
-  
+   
   for(auto bb : blocks) {
     assert(bb->sanityCheck());
   }  
   
-  if(globals::splitCFGBBs) {
-    for(auto bb : blocks) {
-      bb->repairBrokenEdges();
-    }
-  }
   
   for(auto bb : blocks) {
     cfgBasicBlock *cbb = new cfgBasicBlock(bb);
@@ -644,7 +612,7 @@ bool regionCFG::buildCFG(std::vector<std::vector<basicBlock*> > &regions) {
     cfgMap[bb] = cbb;
   }
   
-  
+  printf("%d\n", __LINE__);
   for(auto bb : blocks) {
     for(auto nbb : bb->getSuccs()) {
       auto it = cfgMap.find(nbb);
@@ -653,76 +621,29 @@ bool regionCFG::buildCFG(std::vector<std::vector<basicBlock*> > &regions) {
       }
     }
   }
-
-  if(globals::splitCFGBBs) {
-    splitBBs();
-  }
-  
-  /* implicit self loop when there's only one block */
-  if(cfgBlocks.size()==1) {
-    cfgMap[head]->addSuccessor(cfgMap[head]);
-  }
-
+  printf("%d\n", __LINE__);
+ 
 
   /* "compile" mips instructions into proper class */
   for(size_t i = 0; i < cfgBlocks.size(); i++) {
     cfgBasicBlock *cbb = cfgBlocks[i];
-    uint32_t ep = cbb->getEntryAddr();
+    uint64_t ep = cbb->getEntryAddr();
     cbb->bindInsns(this);
     auto it = cfgBlockMap.find(ep);
     assert(it == cfgBlockMap.end());
     cfgBlockMap[ep] = cbb;
   }
 
+  printf("%d\n", __LINE__);
   uint32_t typeCnts[dummyprec-integerprec] = {0};
   for(size_t i = 0; i < cfgBlocks.size(); i++) {
     cfgBasicBlock *cbb = cfgBlocks[i];
     cbb->hasFloatingPoint(typeCnts);
   }
 
-  //for(size_t i = 0; i < 5; i++) {
-  //printf("%zu type %zu ins\n", typeCnts[i], i);
-  //}
-
-  for(size_t i = 0, nblks=cfgBlocks.size(); i < nblks; i++) {
-    cfgBasicBlock *cbb = cfgBlocks[i];
-    if(not(cbb->canCompile())) {
-      return false;
-    }
-  }
-
-  /* Speculate that jr's can branch back to 
-   * the region head */
-  //for(size_t i = 0; i < cfgBlocks.size(); i++) {
-  //cfgBasicBlock *cbb = cfgBlocks[i];
-  //if(cbb->has_jr_jalr()) {
-  //cbb->addSuccessor(cfgMap[head]);
-  //}
-  //}
-
-  /* find edges within cfg not found by 
-   * tracing mechanism */
-  //for(size_t i = 0; i < cfgBlocks.size(); i++) {
-  //(cfgBlocks[i])->addWithInCFGEdges(this);
-  //}
-
-  
-  for(size_t i = 0; i < cfgBlocks.size(); i++) {
-    cfgBasicBlock *cbb = cfgBlocks[i];
-    if(!cbb->checkIfPlausableSuccessors()) {
-      printf("found impossible edge\n");
-      die();
-    }
-  }
-
-
-
   if(not(allBlocksReachable(cfgMap[head]))) {
     die();
   }
-
-
-  
 
   
   bool rc = analyzeGraph();
@@ -790,28 +711,15 @@ bool regionCFG::analyzeGraph() {
     cnt = allFcrRead[i] ? cnt + 1 : cnt;
     usesFCR |= (allFcrRead[i]!=0);
   }
-
-  initLLVMAndGeneratePreamble();
-  entryBlock->traverseAndRename(this);
-  entryBlock->patchUpPhiNodes(this);
-
   
-  std::string _errors;
-  llvm::raw_string_ostream OS(_errors);
-  if(llvm::verifyModule(*myModule, &OS)) {
-    std::cerr << _errors;
-    llvm::errs() << *myModule;
-    dumpIR();
-    dumpLLVM();
-    die();
-  }
+  //initLLVMAndGeneratePreamble();
+  //entryBlock->traverseAndRename(this);
+  //entryBlock->patchUpPhiNodes(this);
 
-  if(globals::dumpIR) {
-    dumpIR();
-    dumpLLVM();
-  }
-  //std::cout << "compiled block with entry of " << std::hex << cfgHead->getEntryAddr() << std::dec << "\n";
-
+ 
+  dumpIR();
+  asDot();
+  
   return true;
 }
 
@@ -936,17 +844,17 @@ void regionCFG::insertPhis()  {
   /* find blocks where registers are "defined" */
   getRegDefBlocks();
   /* if any register is written in the cfg */
-  assert(gprDefinitionBlocks[0].empty());
-  for(size_t gpr = 1; gpr < 32; gpr++) {
-    //if(gpr == 16) {
-    //for(auto blk : gprDefinitionBlocks[gpr]) {
-    //std::cout << *blk << "\n";
-    //}
-    //}
-    
-    if(!gprDefinitionBlocks[gpr].empty())
-      gprDefinitionBlocks[gpr].insert(entryBlock);
+  if(not(gprDefinitionBlocks[0].empty())) {
+    std::cout << "writing to the zero reg?\n";
   }
+  //assert(gprDefinitionBlocks[0].empty());
+  
+  for(size_t gpr = 0; gpr < 32; gpr++) {
+    if(not(gprDefinitionBlocks[gpr].empty())) {
+      gprDefinitionBlocks[gpr].insert(entryBlock);
+    }
+  }
+  
   for(size_t fpr = 0; fpr < 32; fpr++) {
     if(!fprDefinitionBlocks[fpr].empty())
       fprDefinitionBlocks[fpr].insert(entryBlock);

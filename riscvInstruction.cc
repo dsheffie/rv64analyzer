@@ -17,7 +17,7 @@ std::ostream &operator<<(std::ostream &out, const Insn &ins) {
 
 class loadInsn : public Insn {
 public:
-  loadInsn(uint32_t inst, uint32_t addr) : Insn(inst, addr) {}
+  loadInsn(uint32_t inst, uint64_t addr) : Insn(inst, addr) {}
   void recDefines(cfgBasicBlock *cBB, regionCFG *cfg) override {
     cfg->gprDefinitionBlocks[r.l.rd].insert(cBB);
   }
@@ -28,7 +28,7 @@ public:
 
 class storeInsn : public Insn {
 public:
-  storeInsn(uint32_t inst, uint32_t addr) :
+  storeInsn(uint32_t inst, uint64_t addr) :
     Insn(inst, addr,insnDefType::no_dest) {}
   void recDefines(cfgBasicBlock *cBB, regionCFG *cfg) override {}
   void recUses(cfgBasicBlock *cBB) override {
@@ -41,44 +41,44 @@ public:
 /* iType */
 class insn_beq : public iBranchTypeInsn {
  public:
- insn_beq(uint32_t inst, uint32_t addr) : iBranchTypeInsn(inst, addr) {}
+ insn_beq(uint32_t inst, uint64_t addr) : iBranchTypeInsn(inst, addr) {}
  bool generateIR(cfgBasicBlock *cBB,  llvmRegTables& regTbl) override;
 };
 
 class insn_bne : public iBranchTypeInsn {
  public:
- insn_bne(uint32_t inst, uint32_t addr) : iBranchTypeInsn(inst, addr) {}
+ insn_bne(uint32_t inst, uint64_t addr) : iBranchTypeInsn(inst, addr) {}
  bool generateIR(cfgBasicBlock *cBB,  llvmRegTables& regTbl) override;
 };
 
 
 class insn_blt : public iBranchTypeInsn {
  public:
-  insn_blt(uint32_t inst, uint32_t addr) : iBranchTypeInsn(inst, addr) {}
+  insn_blt(uint32_t inst, uint64_t addr) : iBranchTypeInsn(inst, addr) {}
   bool generateIR(cfgBasicBlock *cBB,  llvmRegTables& regTbl) override;
 };
 
 class insn_bge : public iBranchTypeInsn {
 public:
-  insn_bge(uint32_t inst, uint32_t addr) : iBranchTypeInsn(inst, addr) {}
+  insn_bge(uint32_t inst, uint64_t addr) : iBranchTypeInsn(inst, addr) {}
   bool generateIR(cfgBasicBlock *cBB,  llvmRegTables& regTbl) override;
 };
 
 class insn_bltu : public iBranchTypeInsn {
  public:
-  insn_bltu(uint32_t inst, uint32_t addr) : iBranchTypeInsn(inst, addr) {}
+  insn_bltu(uint32_t inst, uint64_t addr) : iBranchTypeInsn(inst, addr) {}
   bool generateIR(cfgBasicBlock *cBB,  llvmRegTables& regTbl) override;
 };
 
 class insn_bgeu : public iBranchTypeInsn {
 public:
-  insn_bgeu(uint32_t inst, uint32_t addr) : iBranchTypeInsn(inst, addr) {}
+  insn_bgeu(uint32_t inst, uint64_t addr) : iBranchTypeInsn(inst, addr) {}
   bool generateIR(cfgBasicBlock *cBB,  llvmRegTables& regTbl) override;
 };
 
 class insn_lui : public Insn {
  public:
- insn_lui(uint32_t inst, uint32_t addr) :
+ insn_lui(uint32_t inst, uint64_t addr) :
    Insn(inst, addr) {}
   bool generateIR(cfgBasicBlock *cBB,  llvmRegTables& regTbl) override {
     llvm::LLVMContext &cxt = *(cfg->Context);
@@ -93,7 +93,7 @@ class insn_lui : public Insn {
 
 class insn_auipc : public Insn {
  public:
- insn_auipc(uint32_t inst, uint32_t addr) : Insn(inst, addr) {}
+ insn_auipc(uint32_t inst, uint64_t addr) : Insn(inst, addr) {}
   bool generateIR(cfgBasicBlock *cBB,  llvmRegTables& regTbl) override {
     llvm::LLVMContext &cxt = *(cfg->Context);
     llvm::Type *iType32 = llvm::Type::getInt32Ty(cxt);
@@ -111,54 +111,70 @@ class insn_auipc : public Insn {
 
 class insn_lb : public loadInsn {
  public:
- insn_lb(uint32_t inst, uint32_t addr) : loadInsn(inst, addr) {}
+ insn_lb(uint32_t inst, uint64_t addr) : loadInsn(inst, addr) {}
  bool generateIR(cfgBasicBlock *cBB,  llvmRegTables& regTbl) override;
  
 };
 
 class insn_lh : public loadInsn {
  public:
- insn_lh(uint32_t inst, uint32_t addr) : loadInsn(inst, addr) {}
+ insn_lh(uint32_t inst, uint64_t addr) : loadInsn(inst, addr) {}
  bool generateIR(cfgBasicBlock *cBB,  llvmRegTables& regTbl) override;
 };
 
 class insn_lw : public loadInsn {
  public:
- insn_lw(uint32_t inst, uint32_t addr) : loadInsn(inst, addr) {}
+ insn_lw(uint32_t inst, uint64_t addr) : loadInsn(inst, addr) {}
  bool generateIR(cfgBasicBlock *cBB,  llvmRegTables& regTbl) override;
+};
+
+class insn_ld : public loadInsn {
+public:
+  insn_ld(uint32_t inst, uint64_t addr) : loadInsn(inst, addr) {}
 };
 
 class insn_lbu : public loadInsn {
  public:
- insn_lbu(uint32_t inst, uint32_t addr) : loadInsn(inst, addr) {}
+ insn_lbu(uint32_t inst, uint64_t addr) : loadInsn(inst, addr) {}
  bool generateIR(cfgBasicBlock *cBB,  llvmRegTables& regTbl) override;
 };
 
 class insn_lhu : public loadInsn {
  public:
- insn_lhu(uint32_t inst, uint32_t addr) : loadInsn(inst, addr) {}
+ insn_lhu(uint32_t inst, uint64_t addr) : loadInsn(inst, addr) {}
  bool generateIR(cfgBasicBlock *cBB,  llvmRegTables& regTbl) override;
 };
+
+class insn_lwu : public loadInsn {
+public:
+  insn_lwu(uint32_t inst, uint64_t addr) : loadInsn(inst, addr) {}
+};
+
 
 
 class insn_sb : public storeInsn {
  public:
- insn_sb(uint32_t inst, uint32_t addr) : storeInsn(inst, addr) {}
+ insn_sb(uint32_t inst, uint64_t addr) : storeInsn(inst, addr) {}
  bool generateIR(cfgBasicBlock *cBB,  llvmRegTables& regTbl) override;
  
 };
 
 class insn_sh : public storeInsn {
  public:
- insn_sh(uint32_t inst, uint32_t addr) : storeInsn(inst, addr) {}
+ insn_sh(uint32_t inst, uint64_t addr) : storeInsn(inst, addr) {}
  bool generateIR(cfgBasicBlock *cBB,  llvmRegTables& regTbl) override;
  
 };
 
 class insn_sw : public storeInsn {
  public:
-  insn_sw(uint32_t inst, uint32_t addr) : storeInsn(inst, addr) {}
+  insn_sw(uint32_t inst, uint64_t addr) : storeInsn(inst, addr) {}
   bool generateIR(cfgBasicBlock *cBB,  llvmRegTables& regTbl) override;
+};
+
+class insn_sd : public storeInsn {
+ public:
+  insn_sd(uint32_t inst, uint64_t addr) : storeInsn(inst, addr) {}
 };
 
 
@@ -282,11 +298,11 @@ void insn_jal::recDefines(cfgBasicBlock *cBB, regionCFG *cfg)  {
 }
 
 
-Insn* getInsn(uint32_t inst, uint32_t addr){
+Insn* getInsn(uint32_t inst, uint64_t addr){
   uint32_t opcode = inst & 127;
   uint32_t rd = (inst>>7) & 31;
   riscv_t m(inst);
-
+  //std::cout << "opcode " << std::hex << opcode << std::dec << "\n";
   switch(opcode)
     {
     case 0x3:  /* loads */
@@ -298,16 +314,22 @@ Insn* getInsn(uint32_t inst, uint32_t addr){
 	  return new insn_lh(inst, addr);
 	case 0x2: /* lw */
 	  return new insn_lw(inst, addr);
+	case 0x3: /* ld */
+	  return new insn_ld(inst, addr);
 	case 0x4: /* lbu */
 	  return new insn_lbu(inst, addr);
 	case 0x5:  /* lhu */
-	  return new insn_lhu(inst, addr);	  
+	  return new insn_lhu(inst, addr);
+	case 0x6: /* lwu */
+	  return new insn_lwu(inst, addr);
 	}
       break;
     case 0xf:  /* fence - there's a bunch of 'em */
       break;
     case 0x13: /* reg + imm insns */
       return new iTypeInsn(inst, addr);
+      //case 0x1b:
+      
     case 0x23: {/* stores */
       switch(m.s.sel)
 	{
@@ -317,6 +339,8 @@ Insn* getInsn(uint32_t inst, uint32_t addr){
 	  return new insn_sh(inst, addr);
 	case 0x2: /* sw */
 	  return new insn_sw(inst, addr);
+	case 0x3: /* sd */
+	  return new insn_sd(inst, addr);
 	default:
 	  break;
 	}
@@ -353,14 +377,14 @@ Insn* getInsn(uint32_t inst, uint32_t addr){
 	  return new insn_bgeu(inst, addr);	  	  
 	default:
 	  break;
-	}      
-      return nullptr;
-    
+	}
+      break;
     default:
+      //std::cout << "what is opcode " << std::hex << opcode << std::dec << "\n";
       break;
     }
   
-  return nullptr;
+  return new Insn(inst, addr);
 }
 
 

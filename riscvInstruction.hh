@@ -16,12 +16,13 @@ enum regEnum {uninit=0,constant,variant};
 enum opPrecType {integerprec=0,singleprec,doubleprec,fpspecialprec,unknownprec,dummyprec};
 
 
-Insn* getInsn(uint32_t inst, uint32_t addr);
+Insn* getInsn(uint32_t inst, uint64_t addr);
 
 class Insn : public ssaInsn {
 protected:
   friend std::ostream &operator<<(std::ostream &out, const Insn &ins);
-  uint32_t inst, addr;
+  uint32_t inst;
+  uint64_t addr;
   riscv_t r;
   regionCFG *cfg = nullptr;
   cfgBasicBlock *myBB = nullptr;
@@ -50,7 +51,7 @@ public:
   uint32_t getAddr() const {
     return addr;
   }
-  Insn(uint32_t inst, uint32_t addr, insnDefType insnType = insnDefType::unknown) :
+  Insn(uint32_t inst, uint64_t addr, insnDefType insnType = insnDefType::unknown) :
     ssaInsn(insnType), inst(inst), addr(addr), r(inst) {
   }
   virtual ~Insn() {}
@@ -58,13 +59,13 @@ public:
 
 class abstractBranch {
 public:
- virtual uint32_t getTakenAddr() const = 0;
- virtual uint32_t getNotTakenAddr() const = 0; 
+ virtual uint64_t getTakenAddr() const = 0;
+ virtual uint64_t getNotTakenAddr() const = 0; 
 };
 
 class iTypeInsn : public Insn  {
 public:
-  iTypeInsn(uint32_t inst, uint32_t addr, insnDefType insnType = insnDefType::gpr) : 
+  iTypeInsn(uint32_t inst, uint64_t addr, insnDefType insnType = insnDefType::gpr) : 
     Insn(inst, addr, insnType) {}
   void recDefines(cfgBasicBlock *cBB, regionCFG *cfg) override;
   void recUses(cfgBasicBlock *cBB) override;
@@ -73,9 +74,9 @@ public:
 
 class iBranchTypeInsn : public Insn, public abstractBranch {
 protected:
-  int32_t tAddr=0,ntAddr=0;
+  int64_t tAddr=0,ntAddr=0;
 public:
- iBranchTypeInsn(uint32_t inst, uint32_t addr) : 
+ iBranchTypeInsn(uint32_t inst, uint64_t addr) : 
    Insn(inst, addr, insnDefType::no_dest) {
    int32_t disp =
      (r.b.imm4_1 << 1)  |
@@ -86,10 +87,10 @@ public:
    tAddr = disp + addr;
    ntAddr = addr + 4;
  }
-  uint32_t getTakenAddr() const override { 
+  uint64_t getTakenAddr() const override { 
     return tAddr; 
   }
-  uint32_t getNotTakenAddr() const override { 
+  uint64_t getNotTakenAddr() const override { 
     return ntAddr; 
   }
   void recDefines(cfgBasicBlock *cBB, regionCFG *cfg) override ;
@@ -101,7 +102,7 @@ public:
 
 class rTypeInsn : public Insn {
 public:
-  rTypeInsn(uint32_t inst, uint32_t addr, insnDefType insnType = insnDefType::gpr) :
+  rTypeInsn(uint32_t inst, uint64_t addr, insnDefType insnType = insnDefType::gpr) :
    Insn(inst, addr, insnType){}
  void recDefines(cfgBasicBlock *cBB, regionCFG *cfg) override;
  void recUses(cfgBasicBlock *cBB) override;
@@ -111,7 +112,7 @@ public:
 
 class insn_j : public Insn {
 public:
-  insn_j(uint32_t inst, uint32_t addr) :
+  insn_j(uint32_t inst, uint64_t addr) :
     Insn(inst, addr, insnDefType::no_dest) {}
   int32_t getJumpAddr() const {
     int32_t jaddr =
@@ -130,7 +131,7 @@ public:
 
 class insn_jal : public Insn {
 public:
-  insn_jal(uint32_t inst, uint32_t addr) :
+  insn_jal(uint32_t inst, uint64_t addr) :
     Insn(inst, addr, insnDefType::gpr) {}
   int32_t getJumpAddr() const {
     int32_t jaddr =
@@ -150,7 +151,7 @@ public:
 
 class insn_jr : public Insn {
 public:
-  insn_jr(uint32_t inst, uint32_t addr) :
+  insn_jr(uint32_t inst, uint64_t addr) :
     Insn(inst, addr, insnDefType::no_dest) {}
   bool generateIR(cfgBasicBlock *cBB,  llvmRegTables& regTbl) override;
   bool canCompile() const override;
@@ -160,7 +161,7 @@ public:
 
 class insn_jalr : public Insn {
 public:
-  insn_jalr(uint32_t inst, uint32_t addr) :
+  insn_jalr(uint32_t inst, uint64_t addr) :
     Insn(inst, addr, insnDefType::gpr) {}
   bool canCompile() const override;
   bool generateIR(cfgBasicBlock *cBB,  llvmRegTables& regTbl) override;

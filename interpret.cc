@@ -60,13 +60,14 @@ void execRiscv(uint32_t inst, uint64_t pc, uint64_t npc) {
 
 void buildCFG(const std::list<inst_record> &trace) {
   auto nit = trace.begin(); nit++;
-  for(auto it = trace.begin(), E = trace.end(); it != E; ++it) {
+  uint64_t cnt = 0;
+  for(auto it = trace.begin(), E = trace.end(); nit != E; ++it) {
     uint64_t npc = ~0UL;
     const inst_record & ir = *it;
     if(nit != E) {
       npc = nit->pc;
     }
-
+ 
 #if 0
     printf("%lx %s -> %lx (cbb %lx, term %lx, read only %d)\n",
 	   ir.pc,
@@ -88,6 +89,8 @@ void buildCFG(const std::list<inst_record> &trace) {
       }
       globals::cBB = nbb;
     }
+  next:
+    ++cnt;
     ++nit;
   }
   std::cout << "made it to end of trace\n";
