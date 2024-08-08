@@ -2118,8 +2118,8 @@ void regionCFG::report(std::string &s, uint64_t icnt) {
   s += "\n\n";
 }
  
-uint32_t regionCFG::getEntryAddr() const {
-  return head ? head->getEntryAddr() : ~0;
+uint64_t regionCFG::getEntryAddr() const {
+  return head ? head->getEntryAddr() : ~0UL;
 }
 
 void regionCFG::info() {

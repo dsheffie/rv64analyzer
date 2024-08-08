@@ -90,13 +90,13 @@ public:
   static size_t numStaticInsns() {
     return insMap.size();
   }
-  uint32_t getEntryAddr() const override{
+  uint64_t getEntryAddr() const override{
     return entryAddr; 
   }
-  uint32_t getTermAddr() const {
+  uint64_t getTermAddr() const {
     return termAddr;
   }
-  void setTermAddr( uint32_t termAddr) {
+  void setTermAddr(uint64_t termAddr) {
     if(this->termAddr == 0) {
       this->termAddr = termAddr;
     }
@@ -104,7 +104,7 @@ public:
   const insContainer &getVecIns() const {
     return vecIns;
   }
-  double edgeWeight(uint32_t pc) const {
+  double edgeWeight(uint64_t pc) const {
     const auto it = edgeCnts.find(pc);
     if(it == edgeCnts.end()) {
       return  0.0;

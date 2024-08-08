@@ -21,8 +21,8 @@ void cfgBasicBlock::addWithInCFGEdges(regionCFG *cfg) {
   insn_j *j = nullptr;
   insn_jal *jal = nullptr;
 
-  std::map<uint32_t,cfgBasicBlock*>::iterator mit0,mit1;
-  uint32_t tAddr=~0,ntAddr=~0;
+  std::map<uint64_t,cfgBasicBlock*>::iterator mit0,mit1;
+  uint64_t tAddr=~0UL,ntAddr=~0UL;
 
   /* this is crappy code */
   for(ssize_t i = insns.size()-1; i >= 0; i--) {
@@ -201,8 +201,8 @@ bool cfgBasicBlock::canCompile() const {
   return true;
 }
 
-uint32_t cfgBasicBlock::getExitAddr() const {
-  return insns.empty() ? ~(0U) : insns.at(insns.size()-1)->getAddr();
+uint64_t cfgBasicBlock::getExitAddr() const {
+  return insns.empty() ? ~(0UL) : insns.at(insns.size()-1)->getAddr();
 }
 
 std::string cfgBasicBlock::getName() const {
@@ -244,7 +244,7 @@ void cfgBasicBlock::print() {
 
 
 
-cfgBasicBlock* cfgBasicBlock::splitBB(uint32_t splitpc) {
+cfgBasicBlock* cfgBasicBlock::splitBB(uint64_t splitpc) {
   ssize_t offs = -1;
 #if 0
   std::cout << "old:\n";
@@ -559,7 +559,7 @@ void cfgBasicBlock::traverseAndRename(regionCFG *cfg, llvmRegTables prevRegTbl) 
 
 }
 
-uint32_t cfgBasicBlock::getEntryAddr() const {
+uint64_t cfgBasicBlock::getEntryAddr() const {
   if(not(rawInsns.empty())) {
     return rawInsns.at(0).second;
   }
@@ -567,5 +567,5 @@ uint32_t cfgBasicBlock::getEntryAddr() const {
     assert(false);
     return bb->getEntryAddr();
   }
-  return ~(0U);
+  return ~(0UL);
 }

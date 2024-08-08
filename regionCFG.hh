@@ -219,8 +219,8 @@ class cfgBasicBlock {
   bool canCompile() const;
   bool hasFloatingPoint(uint32_t *typeCnts) const;
   void print();
-  uint32_t getExitAddr() const;
-  uint32_t getEntryAddr() const;
+  uint64_t getExitAddr() const;
+  uint64_t getEntryAddr() const;
   std::string getName() const;
 
   void traverseAndRename(regionCFG *cfg);  
@@ -229,11 +229,8 @@ class cfgBasicBlock {
   void patchUpPhiNodes(regionCFG *cfg);
   void bindInsns(regionCFG *cfg);
   
-  cfgBasicBlock *splitBB(uint32_t splitPC);
+  cfgBasicBlock *splitBB(uint64_t splitPC);
   
-  bool hasBranchLikely() {
-    return false;
-  }
   void addSuccessor(cfgBasicBlock *s);
   void delSuccessor(cfgBasicBlock *s);
   cfgBasicBlock(basicBlock *bb);
@@ -359,7 +356,7 @@ protected:
   }
 
   std::array<uint64_t, histoLen> runHistory;
-  std::set<uint32_t> nextPCs;
+  std::set<uint64_t> nextPCs;
   std::set<basicBlock*> blocks;
   compiledCFG codeBits;
   perfmap *pmap;
@@ -389,7 +386,7 @@ protected:
 
 
   std::vector<cfgBasicBlock*> cfgBlocks;
-  std::map<uint32_t, cfgBasicBlock*> cfgBlockMap;
+  std::map<uint64_t, cfgBasicBlock*> cfgBlockMap;
 
   void splitBBs();
   bool allBlocksReachable(cfgBasicBlock *root);
@@ -428,7 +425,7 @@ protected:
   void findNaturalLoops();
   bool dominates(cfgBasicBlock *A, cfgBasicBlock *B) const;
   static void dropCompiled();
-  uint32_t getEntryAddr() const override;
+  uint64_t getEntryAddr() const override;
   basicBlock* run(state_t *s) override;
   void report(std::string &s, uint64_t icnt) override;
   void info() override;

@@ -346,16 +346,15 @@ std::ostream &operator<<(std::ostream &out, const basicBlock &bb) {
       exit(-1);
     }
   }
-  out << "successors:\n";
+  out << "successors:";
   for(auto sbb : bb.succs) {
-    out << hex << sbb->getEntryAddr() << dec << "\n";
+    out << " " << hex << sbb->getEntryAddr() << dec;
   }
-  out << "predecessors:\n";
+  out << "\npredecessors:";
   for(auto pbb : bb.preds) {
-    out << hex << pbb->getEntryAddr() << dec << "\n";
+    out << " " << hex << pbb->getEntryAddr() << dec;
   }
-  
-  out << "terminal addr = " << hex 
+  out << "\nterminal addr = " << hex 
       << bb.termAddr << dec << endl;
 
   return out;
