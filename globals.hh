@@ -15,7 +15,6 @@ enum class cfgAugEnum {none, head, aggressive, insane};
 namespace globals {
   extern int sArgc;
   extern char** sArgv;
-  extern bool isMipsEL;
   extern bool countInsns;
   extern bool simPoints;
   extern bool replay;
@@ -42,7 +41,6 @@ namespace globals {
   extern std::string binaryName;
   extern std::set<int> openFileDes;
   extern bool profile;
-  extern std::map<std::string, uint32_t> symtab;
   extern bool log;
 };
 #endif

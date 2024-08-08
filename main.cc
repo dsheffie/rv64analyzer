@@ -60,7 +60,6 @@ namespace globals {
   bool profile = false;
   uint64_t dumpicnt = ~(0UL);
   bool log = false;
-  std::map<std::string, uint32_t> symtab;
   uint64_t tohost_addr = 0;
   uint64_t fromhost_addr = 0;
   std::map<uint32_t, uint64_t> syscall_histo;
@@ -88,6 +87,10 @@ int main(int argc, char *argv[]) {
   globals::cBB = new basicBlock(rt.get_records().begin()->pc);
   buildCFG(rt.get_records());
 
+  std::ofstream out("blocks.txt");
+  for(auto p : basicBlock::bbMap) {
+    out << *(p.second) << "\n";
+  }
 
   stopCapstone();
 
