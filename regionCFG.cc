@@ -782,6 +782,9 @@ bool regionCFG::buildCFG(std::vector<std::vector<basicBlock*> > &regions) {
     die();
   }
 
+
+  
+
   
   bool rc = analyzeGraph();
   if(not(rc) and globals::verbose) {
@@ -873,7 +876,76 @@ bool regionCFG::analyzeGraph() {
   return true;
 }
 
+void regionCFG::initLLVMAndGeneratePreamble() {
+  std::vector<llvm::Type*> blockArgTypes;
+  llvm::FunctionType *blockFunctionType = 0;
+  std::vector<std::string> blockArgNames;
 
+  std::string tempName = "cfg_" + toStringHex(head->getEntryAddr());
+  std::string modName = tempName + "_module";
+  std::string entryName = tempName + "_entry";
+
+  myIRBuilder = new llvm::IRBuilder<>(*Context);
+  myModule = new llvm::Module(modName, *Context);
+  type_iPtr32 = llvm::Type::getInt32PtrTy(*Context);
+  type_void = llvm::Type::getVoidTy(*Context);
+  type_iPtr8 = llvm::Type::getInt8PtrTy(*Context);
+  type_iPtr64 = llvm::Type::getInt64PtrTy(*Context);
+  type_int32 = llvm::Type::getInt32Ty(*Context);
+  type_int64 = llvm::Type::getInt64Ty(*Context);
+  type_double = llvm::Type::getDoubleTy(*Context);
+  type_float = llvm::Type::getFloatTy(*Context);
+
+
+  /* not sure why this doesn't work on LLVM > 4 (TODO FIX) */
+  blockArgTypes.push_back(type_iPtr32);
+  blockArgNames.push_back("pc");
+
+  blockArgTypes.push_back(type_iPtr32);
+  blockArgNames.push_back("gpr");
+  
+  
+  blockArgTypes.push_back(type_iPtr8);
+  blockArgNames.push_back("mem");
+  
+  
+  blockArgTypes.push_back(type_iPtr64);
+  blockArgNames.push_back("icnt");
+  blockArgTypes.push_back(type_iPtr64);
+  blockArgNames.push_back("abortloc");
+  blockArgTypes.push_back(type_iPtr64);
+  blockArgNames.push_back("nextbb");
+  blockArgTypes.push_back(type_iPtr32);
+  blockArgNames.push_back("abortpc");
+  
+
+  llvm::ArrayRef<llvm::Type*> blockArgs(blockArgTypes);
+  blockFunctionType = llvm::FunctionType::get(type_void,blockArgs,false);
+  blockFunction = llvm::Function::Create(blockFunctionType, 
+					 llvm::Function::ExternalLinkage,
+					 tempName, 
+					 myModule);
+  size_t idx = 0;
+  for (auto AI = blockFunction->arg_begin(), E = blockFunction->arg_end();
+       AI != E; ++AI) {
+    AI->setName(blockArgNames[idx]);
+    blockArgMap[blockArgNames[idx]] = &(*AI);
+    idx++;
+  }
+
+  /* first defined block must be entry */
+  entryBlock->lBB = llvm::BasicBlock::Create(*Context,tempName + "_ENTRY",blockFunction);
+
+  for(size_t i = 0; i < cfgBlocks.size(); i++) {
+    if(cfgBlocks[i] == entryBlock)
+      continue;
+    
+    std::string blockName = toStringHex(cfgBlocks[i]->getEntryAddr());
+
+    cfgBlocks[i]->lBB = llvm::BasicBlock::Create(*Context,blockName,blockFunction);
+  }
+
+}
 
 regionCFG::regionCFG() : execUnit() {
   regionCFGs.insert(this);
@@ -1859,52 +1931,7 @@ static inline void stepRiscv(state_t *s) {
 }
 #endif
 
-basicBlock* regionCFG::run(state_t *ss) {
-  globals::currUnit = this;
-  uint64_t nextbb = 0, i0=ss->icnt;
-  uint32_t abortpc = 0;
-
-  uint32_t epc = ss->pc;
-  codeBits(
-	   &(ss->pc), 
-	   ss->gpr,
-	   ss->mem,
-	   &(ss->icnt),
-	   &(ss->abortloc),
-	   &nextbb,
-	   &abortpc
-	   );
-
-  globals::cBB = reinterpret_cast<basicBlock*>(ss->abortloc);
-
-  if(0x80009dd8 == abortpc) {
-    std::cout << "abort to bad bb, entry pc was " << std::hex << epc << std::dec << "\n";
-  }
-  //std::cout << "abortpc " << std::hex << globals::cBB->getEntryAddr() << std::dec << "\n";
-  //std::cout << "abortpc " << std::hex << abortpc << std::dec << "\n";
-  
-  //std::cout << "pc = " << std::hex << ss->pc << "\n";
-  i0 = ss->icnt - i0;
-
- 
-  //std::cout << "ran " << i0 << " insns\n";
-  minIcnt = std::min(minIcnt, i0);
-  maxIcnt = std::max(maxIcnt, i0);
-  runHistory[runs%histoLen] = i0;
-  runs++;
-  
-  inscnt+=i0;
-  icnt +=i0;
-  iters++;
-
-  if(nextbb==0) {
-    return globals::cBB->globalFindBlock(ss->pc);
-  }
-  else {
-    basicBlock *rbb = reinterpret_cast<basicBlock*>(nextbb);
-    return rbb;
-  }
-}
+basicBlock* regionCFG::run(state_t *ss) { return nullptr; }
 
 void regionCFG::dumpIR() {
    std::string o_name= "cfg_" + toStringHex(cfgHead->getEntryAddr()) + ".txt";

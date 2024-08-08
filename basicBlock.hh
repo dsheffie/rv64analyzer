@@ -61,27 +61,27 @@ public:
   static void dumpCFG();
   void report(std::string &s, uint64_t icnt) override;
   void info() override;
-  basicBlock* run(state_t *s) override;
   static bool validPath(std::vector<basicBlock*> &rpath);
   void addRegion(const std::vector<basicBlock*> &region);
   bool enoughRegions() const;
   basicBlock* split(uint32_t nEntryAddr);
   void setReadOnly();
+  bool isReadOnly() const {
+    return readOnly;
+  }
   void print() const;
   void repairBrokenEdges();
   ssize_t sizeInBytes() const;
-  void addIns(uint32_t inst, uint32_t addr);
-  basicBlock(uint32_t entryAddr, basicBlock *prev);
-  basicBlock(uint32_t entryAddr);
+  void addIns(uint32_t inst, uint64_t addr);
+  basicBlock(uint64_t entryAddr, basicBlock *prev);
+  basicBlock(uint64_t entryAddr);
   ~basicBlock();
   void dropCompiledCode();
-  basicBlock *findBlock(uint32_t entryAddr);
+  basicBlock *findBlock(uint64_t entryAddr);
   /* no mutate */
-  static basicBlock *globalFindBlock(uint32_t entryAddr);
-  basicBlock *localFindBlock(uint32_t entryAddr);
+  static basicBlock *globalFindBlock(uint64_t entryAddr);
+  basicBlock *localFindBlock(uint64_t entryAddr);
 
-  bool execute(state_t *s);
-  bool executeJIT(state_t *s);
   void addSuccessor(basicBlock *bb);
   bool dfs(basicBlock* oldhead, std::set<basicBlock*> &visited, 
 	   std::vector<basicBlock*> &path);

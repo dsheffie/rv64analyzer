@@ -2,15 +2,13 @@
 #define __INTERPRET_HH__
 
 #include <cstdint>
-static const int MARGS = 20;
-struct state_t;
+#include <list>
 
-void handle_syscall(state_t *s, uint64_t tohost);
+#include "inst_record.hh"
 
-void interpretAndBuildCFG(state_t *s);
-void interpret(state_t *s);
-void interpretAndBuildCFGEL(state_t *s);
-void interpretEL(state_t *s);
+
+void buildCFG(const std::list<inst_record> &trace);
+
 
 
 #endif

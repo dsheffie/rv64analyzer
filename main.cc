@@ -76,7 +76,19 @@ std::map<uint32_t, uint64_t> basicBlock::insInBBCnt;
 
 
 int main(int argc, char *argv[]) {
+  retire_trace rt;
   initCapstone();
+  std::ifstream ifs("retiretrace.dump", std::ios::binary);
+  boost::archive::binary_iarchive ia(ifs);  
+  ia >> rt;
+
+  std::cout << "rt.get_records().size() = " <<
+    rt.get_records().size() << "\n";
+
+
+  globals::cBB = new basicBlock(rt.get_records().begin()->pc);
+  buildCFG(rt.get_records());
+
   
   stopCapstone();
 

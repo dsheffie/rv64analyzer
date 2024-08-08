@@ -145,7 +145,8 @@ void basicBlock::setReadOnly() {
 
 
 bool basicBlock::fallsThru() const {
-  return not(isBranchOrJump(vecIns.at(getNumIns()-1).first));
+  bool termIsBranch = isBranchOrJump(vecIns.at(getNumIns()-1).first);
+  return not(termIsBranch);
 }
 
 
@@ -155,7 +156,9 @@ void basicBlock::addSuccessor(basicBlock *bb) {
   
   if(fallsThru() and succs.size() >= 1) {
     std::cout << "can not have more than one successor with fall-thru\n";
+    std::cout << "this:\n";
     std::cout << *this;
+    std::cout << "bb:\n";    
     std::cout << *bb;
     die();
   }
@@ -178,31 +181,19 @@ void basicBlock::addSuccessor(basicBlock *bb) {
   }
 }
 
-basicBlock::basicBlock(uint32_t entryAddr) : execUnit(), entryAddr(entryAddr) {
+basicBlock::basicBlock(uint64_t entryAddr) : execUnit(), entryAddr(entryAddr) {
   bbMap[entryAddr] = this;  
 }
 
-basicBlock::basicBlock(uint32_t entryAddr, basicBlock *prev) : basicBlock(entryAddr) {
+basicBlock::basicBlock(uint64_t entryAddr, basicBlock *prev) : basicBlock(entryAddr) {
   prev->addSuccessor(this);
 }
 
-void basicBlock::addIns(uint32_t inst, uint32_t addr) {
+void basicBlock::addIns(uint32_t inst, uint64_t addr) {
   if(not(readOnly)) {
     vecIns.emplace_back(inst,addr);
-#if 0
-    if(vecIns.size() > 1024) {
-      std::cerr << *this;
-      std::cerr << "basicblock @ " << std::hex << entryAddr << std::dec << " is very large\n";
-      die();
-    }
-#endif
     insMap[addr] = this;
     insInBBCnt[addr]++;
-    
-    //if(insInBBCnt[addr] > 1) {
-    //std::cerr << *this;
-    // exit(-1);
-    //}
   }
 }
 
@@ -222,7 +213,7 @@ void basicBlock::dropCompiledCode() {
 }
 
 basicBlock *basicBlock::split(uint32_t nEntryAddr) {
-#if 0
+#if 1
   std::cerr << "split @ 0x" << std::hex << entryAddr << std::dec 
 	    << " cfgInRegions.size() = " << cfgInRegions.size() 
 	    << std::endl;
@@ -283,7 +274,7 @@ basicBlock *basicBlock::split(uint32_t nEntryAddr) {
   return nBB;
 }
 
-basicBlock *basicBlock::globalFindBlock(uint32_t entryAddr) {
+basicBlock *basicBlock::globalFindBlock(uint64_t entryAddr) {
   auto it = bbMap.find(entryAddr);
   if(it == bbMap.end())
     return nullptr;
@@ -291,7 +282,7 @@ basicBlock *basicBlock::globalFindBlock(uint32_t entryAddr) {
     return it->second;
 }
 
-basicBlock *basicBlock::localFindBlock(uint32_t entryAddr) {
+basicBlock *basicBlock::localFindBlock(uint64_t entryAddr) {
   if(entryAddr == this->entryAddr)
     return this;
 
@@ -302,7 +293,7 @@ basicBlock *basicBlock::localFindBlock(uint32_t entryAddr) {
     return it->second;
 }
 
-basicBlock *basicBlock::findBlock(uint32_t entryAddr) {
+basicBlock *basicBlock::findBlock(uint64_t entryAddr) {
   basicBlock *fBlock = nullptr;
   auto sIt = succsMap.find(entryAddr);
   
@@ -374,34 +365,20 @@ std::ostream &operator<<(std::ostream &out, const basicBlock &bb) {
 }
 
 
-basicBlock* basicBlock::run(state_t *s) {
-  inscnt += getNumIns();
-  globals::currUnit = this;
-  ssize_t length = (termAddr-entryAddr)/4;
-  if(globals::simPoints) {
-    log_bb(s->pc, s->icnt);
-  }
-  for(ssize_t i = 0; (i <= length) && (s->brk == 0); i++) { 
-    interpret(s);
-  }
-  edgeCnts[s->pc]++;
-  totalEdges++;
-  return findBlock(s->pc);
-}
 
-bool basicBlock::execute(state_t *s) {
-  basicBlock *nBB = nullptr;
-  if(!readOnly || s->pc != entryAddr) {
-    s->oldpc = ~0;
-    return false;
-  }
-  nBB = this->run(s);
-  if(nBB == nullptr) {
-    nBB = new basicBlock(s->pc, globals::cBB);
-  }
-  globals::cBB = nBB;
-  return true;
-}
+// bool basicBlock::execute(uint64_t pc) {
+//   basicBlock *nBB = nullptr;
+//   if(!readOnly || pc != entryAddr) {
+//     return false;
+//   }
+//   if(pc == getTermAddr())
+//   findBlock(s->pc);
+//   if(nBB == nullptr) {
+//     nBB = new basicBlock(s->pc, globals::cBB);
+//   }
+//   globals::cBB = nBB;
+//   return true;
+//}
 
 bool basicBlock::enoughRegions() const {
   for(auto tc : bbRegionCounts) {
@@ -433,106 +410,11 @@ void basicBlock::addRegion(const std::vector<basicBlock*> &region) {
   }
 }
 
-bool basicBlock::executeJIT(state_t *s) {
-  std::vector<basicBlock*> bbRegion;
-  bool gotRegion = false;
-  basicBlock *nBB = nullptr;
-  if(!readOnly || s->pc != entryAddr) {
-    globals::regionFinder->disableRegionCollection();
-    s->oldpc = ~0;
-    return false;
-  }
-  
-  if(globals::regionFinder->update(this)) {
-    globals::regionFinder->getRegion(bbRegion);
-    gotRegion = true;    
-    for(size_t i = 0; i < bbRegion.size(); i++) {
-#if 0
-      std::cerr << "0x" << std::hex << bbRegion[i]->getEntryAddr() << std::dec 
-		<< " added to region with head of 0x" 
-		<< std::hex << getEntryAddr() << std::dec 
-		<< std::endl;
-#endif  
-      bbRegion[i]->cfgInRegions.insert(this);
-    }
-  }
-  
-  if(gotRegion) {
-    bool canCompile = canCompileRegion(bbRegion);
-    addRegion(bbRegion);
-    if(enoughRegions() and canCompile) {
-      if(globals::enableCFG) {
-	cfgCplr = new regionCFG();
-	double now = timestamp();
-	if(cfgCplr->buildCFG(bbRegions)) {	  
-	  now = timestamp() - now;
-#if 0
-	  std::cout << now << " seconds to compile with "
-		    << cfgCplr->countInsns() << " insns and "
-		    << cfgCplr->countBBs() << " basic blocks\n";
-
-	  std::set<basicBlock*> ss;
-	  for(const auto &bbt : bbRegions) {
-	    for(const auto &bb : bbt){
-	      ss.insert(bb);
-	    }
-	  }
-	  for(auto bb : ss) {
-	    std::cout << std::hex
-		      << bb->getEntryAddr()
-		      << std::dec
-		      << "\n";
-	  }
-
-	  fflush(nullptr);
-#endif
-	  bbRegions.clear();
-	  bbRegionCounts.clear();
-	  hasRegion = true;
-	}
-	else {
-	  delete cfgCplr;
-	  cfgCplr = nullptr;
-	}
-      }
-    }
-    else {
-      hasRegion = false;
-      if(not(canCompile)) {
-	bbRegions.clear();
-	bbRegionCounts.clear();
-      }
-    }
-  }
-  
-  s->oldpc = s->pc;
-  
-  if(hasRegion and not(globals::regionFinder->collectionEnabled())) {
-    if(cfgCplr)  {
-      nBB = cfgCplr->run(s);
-    }
-  }
-  else {
-    nBB = this->run(s);
-  }
-  
-  if(nBB == nullptr) {
-    nBB = new basicBlock(s->pc, globals::cBB);
-  }
-  
-  if(not(nBB->hasRegion) and globals::cBB) {
-    globals::regionFinder->updateRegionHeads(nBB, globals::cBB);
-  }
-  globals::cBB = nBB;
-  return true;
-}
-
-
 basicBlock::~basicBlock() {
   if(cfgCplr)
     delete cfgCplr;
 }
-
+ 
 void basicBlock::info() {
   std::cout << __PRETTY_FUNCTION__ << " with entry @ "
      	    << std::hex

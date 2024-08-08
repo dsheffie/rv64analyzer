@@ -20,12 +20,6 @@
 #define ELIDE_LLVM
 #include "globals.hh"      // for cBB, blobName, isMipsEL
 
-class inst_record {
-public:
-  uint64_t pc;
-  uint32_t inst;
-  double pushout;
-};
 
 static void getNextBlock(uint64_t pc) {
   basicBlock *nBB = globals::cBB->findBlock(pc);
@@ -39,7 +33,6 @@ static void getNextBlock(uint64_t pc) {
 void execRiscv(uint32_t inst, uint64_t pc, uint64_t npc) {
   globals::cBB->addIns(inst, pc);
   uint32_t opcode = inst & 127;
-
   switch(opcode)
     {
       //imm[11:0] rs1 000 rd 1100111 JALR
@@ -55,7 +48,7 @@ void execRiscv(uint32_t inst, uint64_t pc, uint64_t npc) {
       break;
     }
     case 0x63: { /* cond branch */
-      globals::cBB->setTermAddr(pc);      
+      globals::cBB->setTermAddr(pc);
       getNextBlock(npc);
       break;
     }
@@ -65,7 +58,7 @@ void execRiscv(uint32_t inst, uint64_t pc, uint64_t npc) {
 }
 
 
-void interpretAndBuildCFG(const std::list<inst_record> &trace) {
+void buildCFG(const std::list<inst_record> &trace) {
   auto nit = trace.begin(); nit++;
   for(auto it = trace.begin(), E = trace.end(); it != E; ++it) {
     uint64_t npc = ~0UL;
@@ -73,9 +66,31 @@ void interpretAndBuildCFG(const std::list<inst_record> &trace) {
     if(nit != E) {
       npc = nit->pc;
     }
-    execRiscv(ir.inst, ir.pc, npc);
+
+#if 0
+    printf("%lx %s -> %lx (cbb %lx, term %lx, read only %d)\n",
+	   ir.pc,
+	   getAsmString(ir.inst, ir.pc).c_str(),
+	   npc,
+	   globals::cBB->getEntryAddr(),
+	   globals::cBB->getTermAddr(),
+	   globals::cBB->isReadOnly()
+	   );
+#endif
+    
+    if( not(globals::cBB->isReadOnly()) ) {
+      execRiscv(ir.inst, ir.pc, npc);
+    }
+    else if(ir.pc == globals::cBB->getTermAddr()) {
+      auto nbb = globals::cBB->findBlock(npc);
+      if(nbb == nullptr)  {
+	nbb = new basicBlock(npc, globals::cBB);
+      }
+      globals::cBB = nbb;
+    }
     ++nit;
   }
+  std::cout << "made it to end of trace\n";
 }
 
 

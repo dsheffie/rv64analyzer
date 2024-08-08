@@ -14,7 +14,9 @@ protected:
   uint64_t inscnt;
 public:
   execUnit() : inscnt(0) {}
-  virtual basicBlock* run(state_t *s) = 0;
+  virtual basicBlock* run(state_t *s)  {
+    return nullptr;
+  };
   virtual void info() = 0;
   virtual void report(std::string &s, uint64_t icnt) {}
   virtual uint32_t getEntryAddr() const = 0;

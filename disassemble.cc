@@ -34,11 +34,10 @@ const std::string &getGPRName(uint32_t r) {
 
 
 
-void disassemble(std::ostream &out, uint32_t inst, uint32_t addr) {
+void disassemble(std::ostream &out, uint32_t inst, uint64_t addr) {
   out << getAsmString(inst,addr);
 }
 
-#ifndef __APPLE__
 static const std::map<cs_err, std::string> cs_error_map =
   {
    {CS_ERR_OK,"CS_ERR_OK"},
@@ -57,27 +56,22 @@ static const std::map<cs_err, std::string> cs_error_map =
   };
 
 static csh handle;
-#endif
 
 void initCapstone() {
-#ifndef __APPLE__  
-  cs_err C = cs_open(CS_ARCH_RISCV, CS_MODE_RISCV32, &handle);
+  cs_err C = cs_open(CS_ARCH_RISCV, CS_MODE_RISCV64, &handle);
   if(C != CS_ERR_OK) {
     std::cerr << "capstone error : " << cs_error_map.at(C) << "\n";
     exit(-1);
   }
-#endif
+
 }
 
 void stopCapstone() {
-#ifndef __APPLE__  
   cs_close(&handle);
-#endif
 }
 
-std::string getAsmString(uint32_t inst, uint32_t addr) {
+std::string getAsmString(uint32_t inst, uint64_t addr) {
   std::stringstream ss;
-#ifndef __APPLE__
   cs_insn *insn = nullptr;
   size_t count = cs_disasm(handle,reinterpret_cast<const uint8_t *>(&inst),
 			   sizeof(inst), addr, 0, &insn);
@@ -86,7 +80,6 @@ std::string getAsmString(uint32_t inst, uint32_t addr) {
   }
   ss << insn[0].mnemonic << " " << insn[0].op_str;
   cs_free(insn, count);
-#endif
   return ss.str();
 }
 
