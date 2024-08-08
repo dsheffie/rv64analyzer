@@ -117,7 +117,7 @@ static inline bool isBranchOrJump(uint32_t inst) {
   return (opcode == 0x63) or (opcode == 0x6f) or (opcode == 0x67);
 }
 
-static inline bool isDirectBranchOrJump(uint32_t inst, uint32_t addr, uint32_t &target) {
+static inline bool isDirectBranchOrJump(uint32_t inst, uint64_t addr, uint64_t &target) {
   riscv_t m(inst);
   switch(m.b.opcode)
     {

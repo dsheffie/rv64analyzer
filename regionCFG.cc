@@ -2178,7 +2178,7 @@ void regionCFG::toposort(std::vector<cfgBasicBlock*> &topo) const {
 void regionCFG::splitBBs() {
   bool needSplit = false;
   
-  std::set<uint32_t> knownEntries;
+  std::set<uint64_t> knownEntries;
   for(cfgBasicBlock *bb : cfgBlocks) {
     knownEntries.insert(bb->getEntryAddr());
   }
@@ -2192,7 +2192,7 @@ void regionCFG::splitBBs() {
 	continue;
       }
       const basicBlock::insPair &termIns = bb->rawInsns.at(ni-2);
-      uint32_t target = 0, fallthru = termIns.second + 8;
+      uint64_t target = 0, fallthru = termIns.second + 8;
             
       if(isDirectBranchOrJump(termIns.first, termIns.second, target)) {
 	bool knownTarget = (knownEntries.find(target) != knownEntries.end());

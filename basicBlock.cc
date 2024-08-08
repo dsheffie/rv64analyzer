@@ -362,33 +362,12 @@ std::ostream &operator<<(std::ostream &out, const basicBlock &bb) {
 
 
 
-// bool basicBlock::execute(uint64_t pc) {
-//   basicBlock *nBB = nullptr;
-//   if(!readOnly || pc != entryAddr) {
-//     return false;
-//   }
-//   if(pc == getTermAddr())
-//   findBlock(s->pc);
-//   if(nBB == nullptr) {
-//     nBB = new basicBlock(s->pc, globals::cBB);
-//   }
-//   globals::cBB = nBB;
-//   return true;
-//}
-
 bool basicBlock::enoughRegions() const {
   for(auto tc : bbRegionCounts) {
     if(tc.second >= globals::enoughRegions)
       return true;
   }
   return false;
-
-  //for(std::map<uint32_t, uint32_t>::iterator it = bbRegionCounts.begin();
-  // it != bbRegionCounts.end(); ++it) {
-  //if(it->second >= 5)
-  //return true;
-  //}
-  //return false;
 }
 
 void basicBlock::addRegion(const std::vector<basicBlock*> &region) {
@@ -646,7 +625,7 @@ void basicBlock::toposort(basicBlock *src, const std::set<basicBlock*> &valid, s
   src->toposort(valid, ordered, visited);
 }
 
-bool basicBlock::hasTermDirectBranchOrJump(uint32_t &target, uint32_t &fallthru) const {
+bool basicBlock::hasTermDirectBranchOrJump(uint64_t &target, uint64_t &fallthru) const {
   size_t ni = vecIns.size();
   assert(ni != 0);
   fallthru = vecIns.at(ni-1).second + 4;
