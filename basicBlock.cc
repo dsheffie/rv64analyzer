@@ -117,7 +117,6 @@ void basicBlock::dropAllBBs() {
   }
   bbMap.clear();
   insMap.clear();
-  insInBBCnt.clear();
   globals::cBB = nullptr;
   globals::regionFinder->disableRegionCollection();
 }
@@ -193,7 +192,6 @@ void basicBlock::addIns(uint32_t inst, uint64_t addr) {
   if(not(readOnly)) {
     vecIns.emplace_back(inst,addr);
     insMap[addr] = this;
-    insInBBCnt[addr]++;
   }
 }
 
@@ -212,7 +210,7 @@ void basicBlock::dropCompiledCode() {
   }  
 }
 
-basicBlock *basicBlock::split(uint32_t nEntryAddr) {
+basicBlock *basicBlock::split(uint64_t nEntryAddr) {
 #if 1
   std::cerr << "split @ 0x" << std::hex << entryAddr << std::dec 
 	    << " cfgInRegions.size() = " << cfgInRegions.size() 
@@ -243,9 +241,8 @@ basicBlock *basicBlock::split(uint32_t nEntryAddr) {
   nBB->preds.insert(this);
   
   for(size_t i = offs, len = vecIns.size(); i < len; i++) {
-    uint32_t addr = i*4 + entryAddr;
+    uint64_t addr = i*4 + entryAddr;
     insMap[addr] = nBB;
-    insInBBCnt[addr]++;
     nBB->vecIns.push_back(vecIns[i]);
   }
   

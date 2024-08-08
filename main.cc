@@ -70,9 +70,8 @@ perfmap* perfmap::theInstance = nullptr;
 std::set<regionCFG*> regionCFG::regionCFGs;
 uint64_t regionCFG::icnt = 0;
 uint64_t regionCFG::iters = 0;
-std::map<uint32_t, basicBlock*> basicBlock::bbMap;
-std::map<uint32_t, basicBlock*> basicBlock::insMap;
-std::map<uint32_t, uint64_t> basicBlock::insInBBCnt;
+std::map<uint64_t, basicBlock*> basicBlock::bbMap;
+std::map<uint64_t, basicBlock*> basicBlock::insMap;
 
 
 int main(int argc, char *argv[]) {
@@ -89,7 +88,7 @@ int main(int argc, char *argv[]) {
   globals::cBB = new basicBlock(rt.get_records().begin()->pc);
   buildCFG(rt.get_records());
 
-  
+
   stopCapstone();
 
   return 0;

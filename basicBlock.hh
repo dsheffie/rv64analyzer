@@ -22,7 +22,7 @@ std::ostream &operator<<(std::ostream &out, const basicBlock &bb);
 
 class basicBlock : public execUnit {
 public:
-  typedef std::pair<uint32_t, uint32_t> insPair;
+  typedef std::pair<uint32_t, uint64_t> insPair;
   typedef std::vector<insPair, backtrace_allocator<insPair>> insContainer;
 private:
   friend std::ostream &operator<<(std::ostream &out, const basicBlock &bb);
@@ -36,17 +36,15 @@ private:
     }
   };
   static uint64_t cfgCnt;
-  static std::map<uint32_t, basicBlock*> bbMap;
-  static std::map<uint32_t, basicBlock*> insMap;
-  static std::map<uint32_t, uint64_t> insInBBCnt;
-  uint32_t entryAddr=0;  
+  static std::map<uint64_t, basicBlock*> bbMap;
+  static std::map<uint64_t, basicBlock*> insMap;
+  uint64_t entryAddr=0,termAddr = 0;  
   std::set<basicBlock*, orderBasicBlocks> preds,succs;
   std::map<uint32_t, basicBlock *> succsMap;
   bool isCompiled = false, hasRegion = false;
   std::map<uint32_t, uint32_t> bbRegionCounts; 
   std::vector <std::vector<basicBlock*>>bbRegions;
   regionCFG *cfgCplr = nullptr;
-  uint32_t termAddr=0;
   bool readOnly=false;
   bool hasjr=false, hasjal=false, hasjalr = false, hasmonitor=false;
   uint64_t totalEdges = 0;
@@ -64,7 +62,7 @@ public:
   static bool validPath(std::vector<basicBlock*> &rpath);
   void addRegion(const std::vector<basicBlock*> &region);
   bool enoughRegions() const;
-  basicBlock* split(uint32_t nEntryAddr);
+  basicBlock* split(uint64_t nEntryAddr);
   void setReadOnly();
   bool isReadOnly() const {
     return readOnly;
