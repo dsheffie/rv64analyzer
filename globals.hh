@@ -10,8 +10,6 @@ class region;
 class basicBlock;
 class execUnit;
 
-enum class cfgAugEnum {none, head, aggressive, insane};
-
 namespace globals {
   extern int sArgc;
   extern char** sArgv;
@@ -37,7 +35,6 @@ namespace globals {
   extern bool splitCFGBBs;
   extern std::string blobName;
   extern uint64_t icountMIPS;
-  extern cfgAugEnum cfgAug;
   extern std::string binaryName;
   extern std::set<int> openFileDes;
   extern bool profile;

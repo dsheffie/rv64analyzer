@@ -54,7 +54,6 @@ namespace globals {
   uint64_t nAttemptedFuses = 0;
   std::string blobName;
   uint64_t icountMIPS = 500;
-  cfgAugEnum cfgAug = cfgAugEnum::none;
   std::string binaryName;
   std::set<int> openFileDes;
   bool profile = false;
@@ -88,10 +87,17 @@ int main(int argc, char *argv[]) {
   buildCFG(rt.get_records());
 
   std::ofstream out("blocks.txt");
+  std::vector<std::vector<basicBlock*>> regions;
+  std::vector<basicBlock*> r;
+
   for(auto p : basicBlock::bbMap) {
     out << *(p.second) << "\n";
+    r.push_back(p.second);
   }
-
+  
+  regions.push_back(r);
+  regionCFG *cfg = new regionCFG();
+  cfg->buildCFG(regions);
   stopCapstone();
 
   return 0;

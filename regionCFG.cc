@@ -598,67 +598,6 @@ bool regionCFG::buildCFG(std::vector<std::vector<basicBlock*> > &regions) {
   }
   std::sort(blockvec.begin(), blockvec.end(), sortByIcnt<basicBlock*>());
   
-  //globals::cfgAug = cfgAugEnum::insane;
-  switch(globals::cfgAug)
-    {
-    case cfgAugEnum::none:
-      break;
-      /* find paths to the head bb */      
-    case cfgAugEnum::head:
-      for(auto bb: blockvec) {
-	visited.clear();
-	seen.clear();	
-	if(aug_dfs<basicBlock>(head, bb, seen, visited, blocks, 0, 1024)) {
-	  for(auto dbb : visited) {
-	    discovered.insert(dbb);
-	  }
-	}
-      }
-      break;
-      /* find paths to any initially discovered bb */
-    case cfgAugEnum::aggressive:
-      for(auto bb : blockvec) {
-	for(auto nbb : blockvec) {
-	  if(bb==nbb) continue;
-	  visited.clear();
-	  seen.clear();
-	  if(aug_dfs<basicBlock>(nbb, bb, seen, visited, blocks, 0, 1024)) {
-	    for(auto dbb : visited) {
-	      discovered.insert(dbb);
-	    }
-	  }
-	}
-      }
-      break;
-    case cfgAugEnum::insane:
-      discovered = blocks;
-      for(auto sit = discovered.begin(); sit != discovered.end(); ++sit) {
-	auto *bb = *sit;
-	for(auto dit = discovered.begin(); dit != discovered.end(); ++dit) {
-	  auto *nbb = *dit;
-	  if(nbb==bb)
-	    continue;
-	  visited.clear();
-	  seen.clear();		  
-	  if(aug_dfs<basicBlock>(nbb, bb, seen, visited, blocks, 0, 1024)) {
-	    for(auto dbb : visited) {
-	      discovered.insert(dbb);
-	    }
-	  }
-	}
-      }
-      break;
-    }
-
-  int added_blocks = 0;
-  for(auto dbb : discovered) {
-    if(blocks.find(dbb) != blocks.end()) {
-      ++added_blocks;
-    }
-    blocks.insert(dbb);
-  }
-  //std::cout << "AUG FOUND " << added_blocks << "\n";
- 
   std::list<basicBlock*> topoblocks;
   std::map<basicBlock*, double> regionProb;
   
