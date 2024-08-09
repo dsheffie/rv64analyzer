@@ -245,27 +245,32 @@ void llvmRegTables::copy(const llvmRegTables &other) {
   fcrTbl = other.fcrTbl;
 }
 
+ssaRegTables::ssaRegTables(regionCFG *cfg) :
+  MipsRegTable<ssaInsn>(),
+  cfg(cfg) {}
+
+ssaRegTables::ssaRegTables() :
+  MipsRegTable<ssaInsn>(),
+  cfg(nullptr){}
+
+void ssaRegTables::copy(const ssaRegTables &other) {
+  cfg = other.cfg;
+  fprTbl = other.fprTbl;
+  gprTbl = other.gprTbl;
+  fcrTbl = other.fcrTbl;  
+}
+
 llvm::Value *llvmRegTables::setGPR(uint32_t gpr, uint32_t x) {
   gprTbl[gpr] = llvm::ConstantInt::get(llvm::Type::getInt32Ty(*cfg->Context),x);
   return gprTbl[gpr];
 }
 
 llvm::Value *llvmRegTables::loadGPR(uint32_t gpr) {
-  using namespace llvm;
-  if(gprTbl[gpr]==nullptr)  {
-    if(gpr==0) {
-      gprTbl[0] = ConstantInt::get(Type::getInt32Ty(*cfg->Context),0);
-    } 
-    else {
-      Value *offs = ConstantInt::get(Type::getInt32Ty(*cfg->Context),gpr);
-      Value *gep = myIRBuilder->MakeGEP(cfg->blockArgMap["gpr"], offs);
-      std::string ldName = getGPRName(gpr) + "_" + std::to_string(cfg->getuuid()++);
-      Value *ld = myIRBuilder->MakeLoad(gep,ldName);
-      gprTbl[gpr] = ld;
-    }
-  }
-  return gprTbl[gpr];
+  return nullptr;
 }
+
+
+
 
 llvm::Value *llvmRegTables::getFPR(uint32_t fpr, fprUseEnum useType) {
   assert(fprTbl[fpr]!=nullptr);
@@ -374,25 +379,12 @@ llvm::Value *llvmRegTables::loadFCR(uint32_t fcr) {
   return fcrTbl[fcr];
 }
 
-void llvmRegTables::initIcnt() {
-  llvm::Type *iType64 = llvm::Type::getInt64Ty(*(cfg->Context));
-  llvm::Value *vZ = llvm::ConstantInt::get(iType64,0);
-  llvm::Value *vG = myIRBuilder->MakeGEP(cfg->blockArgMap["icnt"], vZ);
-  iCnt = myIRBuilder->MakeLoad(vG, "");
-}
+void llvmRegTables::initIcnt() {}
 
-void llvmRegTables::incrIcnt(size_t amt) {
-  llvm::Type *iType64 = llvm::Type::getInt64Ty(*(cfg->Context));
-  llvm::Value *vAmt = llvm::ConstantInt::get(iType64,amt);
-  iCnt = myIRBuilder->CreateAdd(iCnt, vAmt);
-}
-void llvmRegTables::storeIcnt() {
-  using namespace llvm;
-  Type *iType64 = Type::getInt64Ty(*(cfg->Context));
-  Value *vZ = ConstantInt::get(iType64,0);
-  Value *vG = myIRBuilder->MakeGEP(cfg->blockArgMap["icnt"], vZ);
-  myIRBuilder->CreateStore(iCnt, vG);
-}
+void llvmRegTables::incrIcnt(size_t amt) {}
+
+void llvmRegTables::storeIcnt() {}
+
 void llvmRegTables::storeGPR(uint32_t gpr) {
   using namespace llvm;
   Value *offs = ConstantInt::get(Type::getInt32Ty(*(cfg->Context)),gpr);
@@ -454,12 +446,6 @@ void fcrPhiNode::makeLLVMPhi(regionCFG *cfg, llvmRegTables& regTbl) {
   llvm::Type *iType32 = llvm::Type::getInt32Ty(*(cfg->Context));
   std::string fcrName =  "fcr_" + std::to_string(fcrId) + "_" + std::to_string(cfg->getuuid()++);
   regTbl.fcrTbl[fcrId] = lPhi = cfg->myIRBuilder->CreatePHI(iType32,0,fcrName); 
-}
-
-void icntPhiNode::makeLLVMPhi(regionCFG *cfg, llvmRegTables& regTbl) {
-  llvm::Type *iType64 = llvm::Type::getInt64Ty(*(cfg->Context));
-  std::string phiName =  "icnt_" + std::to_string(cfg->getuuid()++);
-  regTbl.iCnt = lPhi = cfg->myIRBuilder->CreatePHI(iType64,0,phiName);
 }
 
 
@@ -713,7 +699,7 @@ bool regionCFG::analyzeGraph() {
   }
   
   //initLLVMAndGeneratePreamble();
-  //entryBlock->traverseAndRename(this);
+  entryBlock->traverseAndRename(this);
   //entryBlock->patchUpPhiNodes(this);
 
  
@@ -723,76 +709,7 @@ bool regionCFG::analyzeGraph() {
   return true;
 }
 
-void regionCFG::initLLVMAndGeneratePreamble() {
-  std::vector<llvm::Type*> blockArgTypes;
-  llvm::FunctionType *blockFunctionType = 0;
-  std::vector<std::string> blockArgNames;
-
-  std::string tempName = "cfg_" + toStringHex(head->getEntryAddr());
-  std::string modName = tempName + "_module";
-  std::string entryName = tempName + "_entry";
-
-  myIRBuilder = new llvm::IRBuilder<>(*Context);
-  myModule = new llvm::Module(modName, *Context);
-  type_iPtr32 = llvm::Type::getInt32PtrTy(*Context);
-  type_void = llvm::Type::getVoidTy(*Context);
-  type_iPtr8 = llvm::Type::getInt8PtrTy(*Context);
-  type_iPtr64 = llvm::Type::getInt64PtrTy(*Context);
-  type_int32 = llvm::Type::getInt32Ty(*Context);
-  type_int64 = llvm::Type::getInt64Ty(*Context);
-  type_double = llvm::Type::getDoubleTy(*Context);
-  type_float = llvm::Type::getFloatTy(*Context);
-
-
-  /* not sure why this doesn't work on LLVM > 4 (TODO FIX) */
-  blockArgTypes.push_back(type_iPtr32);
-  blockArgNames.push_back("pc");
-
-  blockArgTypes.push_back(type_iPtr32);
-  blockArgNames.push_back("gpr");
-  
-  
-  blockArgTypes.push_back(type_iPtr8);
-  blockArgNames.push_back("mem");
-  
-  
-  blockArgTypes.push_back(type_iPtr64);
-  blockArgNames.push_back("icnt");
-  blockArgTypes.push_back(type_iPtr64);
-  blockArgNames.push_back("abortloc");
-  blockArgTypes.push_back(type_iPtr64);
-  blockArgNames.push_back("nextbb");
-  blockArgTypes.push_back(type_iPtr32);
-  blockArgNames.push_back("abortpc");
-  
-
-  llvm::ArrayRef<llvm::Type*> blockArgs(blockArgTypes);
-  blockFunctionType = llvm::FunctionType::get(type_void,blockArgs,false);
-  blockFunction = llvm::Function::Create(blockFunctionType, 
-					 llvm::Function::ExternalLinkage,
-					 tempName, 
-					 myModule);
-  size_t idx = 0;
-  for (auto AI = blockFunction->arg_begin(), E = blockFunction->arg_end();
-       AI != E; ++AI) {
-    AI->setName(blockArgNames[idx]);
-    blockArgMap[blockArgNames[idx]] = &(*AI);
-    idx++;
-  }
-
-  /* first defined block must be entry */
-  entryBlock->lBB = llvm::BasicBlock::Create(*Context,tempName + "_ENTRY",blockFunction);
-
-  for(size_t i = 0; i < cfgBlocks.size(); i++) {
-    if(cfgBlocks[i] == entryBlock)
-      continue;
-    
-    std::string blockName = toStringHex(cfgBlocks[i]->getEntryAddr());
-
-    cfgBlocks[i]->lBB = llvm::BasicBlock::Create(*Context,blockName,blockFunction);
-  }
-
-}
+void regionCFG::initLLVMAndGeneratePreamble() {}
 
 regionCFG::regionCFG() : execUnit() {
   regionCFGs.insert(this);
@@ -893,14 +810,7 @@ void regionCFG::insertPhis()  {
   for(size_t fcr = 0; fcr < 5; fcr++) {
     inducePhis<fcrPhiNode>(fcrDefinitionBlocks[fcr], fcr);
   }
-  /* handle icnt */
-  if(globals::countInsns) {
-    std::set<cfgBasicBlock*> allBlocks;
-    for(auto bb : cfgBlocks) {
-      allBlocks.insert(bb);
-    }
-    inducePhis<icntPhiNode>(allBlocks, 0);
-  }
+
 }
 
 void regionCFG::fastDominancePreComputation() {
@@ -1041,6 +951,9 @@ bool regionCFG::dominates(cfgBasicBlock *A, cfgBasicBlock *B) const {
 }
 
 
+void phiNode::hookupRegs(MipsRegTable<ssaInsn> &tbl) {
+  
+}
 
 bool phiNode::parentInLLVM(cfgBasicBlock *b) {
   llvm::BasicBlock *BB = lPhi->getParent();
@@ -1101,10 +1014,6 @@ void fcrPhiNode::addIncomingEdge(regionCFG *cfg, cfgBasicBlock *b) {
   dbt_assert(v);
   lPhi->addIncoming(v,getLLVMParentBlock(b));
 }
-void icntPhiNode::addIncomingEdge(regionCFG *cfg, cfgBasicBlock *b) {
-  llvm::Value *vICnt = b->termRegTbl.iCnt;
-  lPhi->addIncoming(vICnt,getLLVMParentBlock(b));
-}
 
 
 void regionCFG::asDot() const {
@@ -1130,7 +1039,7 @@ void regionCFG::asDot() const {
 	<< " : " << "<BR align='left'/>";
     for(ssize_t i = 0, ni = insns.size(); i < ni; i++) {
       const auto &p = insns.at(i);
-      uint32_t inst = p.first, addr = i*4 + ea;
+      uint32_t inst = p.inst, addr = i*4 + ea;
       auto asmString = getAsmString(inst, addr);
       out << std::hex << addr << std::dec
 	  << " : " << asmString << "<BR align='left'/>";
@@ -1318,8 +1227,8 @@ std::ostream &operator<<(std::ostream &out, const regionCFG &cfg) {
     out << "\n";
     const auto &c = bb->rawInsns;
     for(size_t j = 0, nb = c.size(); j < nb; j++) {
-      uint32_t inst = c.at(j).first;
-      uint32_t addr = c.at(j).second;
+      uint32_t inst = c.at(j).inst;
+      uint32_t addr = c.at(j).pc;
       out << "\t" << std::hex << addr << std::dec << " : ";      
       disassemble(out,inst,addr);
       out << "\n";
@@ -2022,85 +1931,3 @@ void regionCFG::toposort(std::vector<cfgBasicBlock*> &topo) const {
   std::reverse(topo.begin(), topo.end());
 }
 
-void regionCFG::splitBBs() {
-  bool needSplit = false;
-  
-  std::set<uint64_t> knownEntries;
-  for(cfgBasicBlock *bb : cfgBlocks) {
-    knownEntries.insert(bb->getEntryAddr());
-  }
-  
-  do {
-    needSplit = false;
-
-    for(cfgBasicBlock *bb : cfgBlocks) {
-      size_t ni = bb->rawInsns.size();
-      if(ni < 2) {
-	continue;
-      }
-      const basicBlock::insPair &termIns = bb->rawInsns.at(ni-2);
-      uint64_t target = 0, fallthru = termIns.second + 8;
-            
-      if(isDirectBranchOrJump(termIns.first, termIns.second, target)) {
-	bool knownTarget = (knownEntries.find(target) != knownEntries.end());
-	bool knownFallthru = (knownEntries.find(fallthru) != knownEntries.end());
-
-	if(knownTarget and knownFallthru) {
-	  continue;
-	}
-	
-	for(cfgBasicBlock *zbb : cfgBlocks) {
-	  if(zbb->rawInsns.empty()) {
-	    continue;
-	  }
-	  size_t n = zbb->rawInsns.size();
-	  uint32_t fa = zbb->rawInsns.at(0).second;
-	  uint32_t la = zbb->rawInsns.at(n-1).second;
-	  uint32_t splitPoint = 0;
-
-	  if(not(knownTarget) and (target > fa and target <= la)) {
-	    splitPoint = target;
-	    needSplit = true;
-	  }
-	  else if(not(knownFallthru) and (fallthru > fa and fallthru <= la)) {
-	    splitPoint = fallthru;
-	    needSplit = true;
-	  }
-	  
-	  if(needSplit) {
-	    
-	    cfgBasicBlock *sbb = zbb->splitBB(splitPoint);
-	    cfgBlocks.push_back(sbb);
-	    /*
-	    std::cerr << std::hex << "adding edge from "
-		      << bb->getEntryAddr()
-		      << " to "
-		      << sbb->getEntryAddr()
-		      << std::dec
-		      << "\n";
-	    */
-	    bb->addSuccessor(sbb);
-	    knownEntries.insert(sbb->getEntryAddr());
-	    break;
-	  }
-
-	}
-      }
-      if(needSplit) {
-	break;
-      }
-    }
-  }
-  while(needSplit);
-}
-
-void regionCFG::doLiveAnalysis(std::ostream &out) const {
-  
-  //for(const cfgBasicBlock *BB : cfgBlocks) {
-  //    for(const Insn *I : BB->getInsns()) {
-  //
-  //}
-  //}
-    
-  //
-}

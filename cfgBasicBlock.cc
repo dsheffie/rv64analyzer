@@ -159,15 +159,6 @@ void cfgBasicBlock::addPhiNode(fcrPhiNode *phi) {
     fcrPhis[r] = phi;
   }
 }
-void cfgBasicBlock::addPhiNode(icntPhiNode *phi) {
-  if(icntPhis[0])
-    delete phi;
-  else {
-    phiNodes.push_back(phi);
-    icntPhis[0] = phi;
-  }
-}
-
 
 bool cfgBasicBlock::has_jr_jalr() {
   for(size_t i = 0; i < insns.size(); i++) {
@@ -192,14 +183,6 @@ bool cfgBasicBlock::hasFloatingPoint(uint32_t *typeCnts) const {
   return hasFP;
 }
 
-bool cfgBasicBlock::canCompile() const {
-  for(size_t i = 0, len = insns.size(); i < len; i++) {
-    if(not(insns[i]->canCompile())) {
-      return false;
-    }
-  }
-  return true;
-}
 
 uint64_t cfgBasicBlock::getExitAddr() const {
   return insns.empty() ? ~(0UL) : insns.at(insns.size()-1)->getAddr();
@@ -240,48 +223,6 @@ void cfgBasicBlock::print() {
 }
 
 
-
-
-
-
-cfgBasicBlock* cfgBasicBlock::splitBB(uint64_t splitpc) {
-  ssize_t offs = -1;
-  
-  cfgBasicBlock *sbb = new cfgBasicBlock(bb);
-  sbb->rawInsns.clear();
-  sbb->hasTermBranchOrJump = hasTermBranchOrJump;
-
-  for(size_t i = 0, n = rawInsns.size(); i < n; i++) {
-    if(rawInsns.at(i).second == splitpc) {
-      offs = i;
-      break;
-    }
-  }
-  //std::cout << "offset @ " << offs << "\n";
-  assert(offs != -1);
-  
-  for(size_t i = offs, n = rawInsns.size(); i < n; i++) {
-    sbb->rawInsns.push_back(rawInsns.at(i));
-  }
-  rawInsns.erase(rawInsns.begin()+offs,rawInsns.end());
-  
-  /* attribute all successors to sbb */
-  for(cfgBasicBlock *nbb : succs) {
-    //std::cout << "succ @ " << std::hex <<  nbb->getEntryAddr() << std::dec << "\n";
-    auto it = nbb->preds.find(this);
-    assert(it != nbb->preds.end());
-    nbb->preds.erase(it);
-    sbb->addSuccessor(nbb);
-  }
-  succs.clear();
-  addSuccessor(sbb);
-
-  assert(succs.size() == 1);
-  hasTermBranchOrJump = false;
-  
-  return sbb;
-}
-
 cfgBasicBlock::cfgBasicBlock(basicBlock *bb) :
   bb(bb),
   hasTermBranchOrJump(false),
@@ -298,7 +239,7 @@ cfgBasicBlock::cfgBasicBlock(basicBlock *bb) :
   if(bb) {
     ssize_t numInsns = bb->getVecIns().size();
     for(ssize_t i = 0; i < numInsns; i++) {
-	const basicBlock::insPair &p = bb->getVecIns()[i];
+	auto &p = bb->getVecIns()[i];
 	rawInsns.push_back(p);
     }
   }
@@ -313,7 +254,7 @@ void cfgBasicBlock::bindInsns(regionCFG *cfg) {
   }
 
   for(const auto & p : rawInsns) {
-    Insn *ins = getInsn(p.first, p.second);
+    Insn *ins = getInsn(p.inst, p.pc);
     assert(ins);
     ins->set(cfg,this);
     insns.push_back(ins);
@@ -398,49 +339,44 @@ bool cfgBasicBlock::dominates(const cfgBasicBlock *B) const {
   return false;
 }
 
-llvm::BasicBlock *cfgBasicBlock::getSuccLLVMBasicBlock(uint32_t pc) {
-  for(cfgBasicBlock *cbb : succs) {
-    if(cbb->getEntryAddr() == pc) {
-      return cbb->lBB;
-    }
-  }
-  //die();
+llvm::BasicBlock *cfgBasicBlock::getSuccLLVMBasicBlock(uint64_t pc) {
   return nullptr;
 }
 
 void cfgBasicBlock::traverseAndRename(regionCFG *cfg){
-  cfg->myIRBuilder->SetInsertPoint(lBB);
   /* this only gets called for the entry block */
-  llvmRegTables regTbl(cfg);
+  ssaRegTables regTbl(cfg);
+
+  assert(ssaInsns.empty());
+  
   for(size_t i = 0; i < 32; i++) {
     if(cfg->allGprRead[i] or not(cfg->gprDefinitionBlocks[i].empty())) {
-      regTbl.loadGPR(i);
+      printf("need to define register %d\n", i);
+      ssaInsn *op = new ssaInsn();
+      regTbl.gprTbl[i] = op;
+      ssaInsns.push_back(op);
+      //regTbl.loadGPR(i);
     }
   }
-  for(size_t i = 0; i < 32; i++) {
-    if(cfg->allFprRead[i] or not(cfg->fprDefinitionBlocks[i].empty())) {
-      regTbl.loadFPR(i);
-    }
-  }
-  for(size_t i = 0; i < 5; i++) {
-    if(cfg->allFcrRead[i] or not(cfg->fcrDefinitionBlocks[i].empty())) {
-      regTbl.loadFCR(i);
-    }
-  }
-  if(globals::countInsns) {
-    regTbl.initIcnt();
-  }
-
-  //lBB->dump();
-
-  termRegTbl.copy(regTbl);
+  //for(size_t i = 0; i < 32; i++) {
+  //if(cfg->allFprRead[i] or not(cfg->fprDefinitionBlocks[i].empty())) {
+  //regTbl.loadFPR(i);
+  //}
+  //}
+  //for(size_t i = 0; i < 5; i++) {
+  //if(cfg->allFcrRead[i] or not(cfg->fcrDefinitionBlocks[i].empty())) {
+  //  regTbl.loadFCR(i);
+  // }
+  //}
+  
+  //termRegTbl.copy(regTbl);
+  ssaRegTbl.copy(regTbl);
+  
   for(auto nBlock : dtree_succs) {
-    /* iterate over instructions */
-    cfg->myIRBuilder->CreateBr(nBlock->lBB);
-    /* pre-order traversal */
     nBlock->traverseAndRename(cfg, regTbl);
     break;
   }
+  
 }
 
 void cfgBasicBlock::patchUpPhiNodes(regionCFG *cfg) {
@@ -455,49 +391,17 @@ void cfgBasicBlock::patchUpPhiNodes(regionCFG *cfg) {
   }
 }
 
-void cfgBasicBlock::traverseAndRename(regionCFG *cfg, llvmRegTables prevRegTbl) {
-  llvmRegTables regTbl(prevRegTbl);
-
-  /* this gets called for all other blocks block */
-  cfg->myIRBuilder->SetInsertPoint(lBB);
-
-  bool innerBlock = false;
-  if(cfg->getInnerPerfectBlock()) {
-    size_t nestingDepth  = cfg->loopNesting.size();
-    innerBlock = cfg->loopNesting[nestingDepth-1][0].inSingleBlockLoop(this);
-  }
-  if(innerBlock) {
-    cfg->getInnerPerfectBlock() = this;
-  }
-
-
-  for(auto p : phiNodes) {
-    p->makeLLVMPhi(cfg, regTbl);
-  }
-  //bb->print();
-
-  if(globals::countInsns) {
-    regTbl.incrIcnt(insns.size());
-  }
-
-  if(globals::simPoints and insns.size()) {
-    if(cfg->builtinFuncts.find("log_bb") != cfg->builtinFuncts.end()) {
-      llvm::Value *vAddr = llvm::ConstantInt::get(cfg->type_int32, getEntryAddr());
-      std::vector<llvm::Value*> argVector;
-      argVector.push_back(vAddr);
-      argVector.push_back(regTbl.iCnt);
-      llvm::ArrayRef<llvm::Value*> cArgs(argVector);
-      cfg->myIRBuilder->CreateCall(cfg->builtinFuncts["log_bb"],cArgs);
-    }
-  }
+void cfgBasicBlock::traverseAndRename(regionCFG *cfg, ssaRegTables prevRegTbl) {
+  ssaRegTables regTbl(prevRegTbl);
   
   /* generate code for each instruction */
   for(size_t i = 0, n=insns.size(); i < n; i++) {
-    /* branch delay means we need to skip inst */
-    insns[i]->codeGen(this, regTbl);
+    auto insn = insns.at(i);
+    insn->hookupRegs(regTbl);
   }
 
-  termRegTbl.copy(regTbl);
+  
+  ssaRegTbl.copy(regTbl);
   
   /* walk dominator tree */
   for(auto cbb : dtree_succs){
@@ -505,24 +409,13 @@ void cfgBasicBlock::traverseAndRename(regionCFG *cfg, llvmRegTables prevRegTbl) 
     cbb->traverseAndRename(cfg, regTbl);
   }
   
-  if(not(hasTermBranchOrJump)) {
-    uint32_t npc = getExitAddr() + 4;
 
-    llvm::BasicBlock *nBB = 0;
-    nBB = getSuccLLVMBasicBlock(npc);
-    nBB = cfg->generateAbortBasicBlock(npc, regTbl, this, nBB);
-
-    cfg->myIRBuilder->SetInsertPoint(lBB);
-    //print();
-    cfg->myIRBuilder->CreateBr(nBB);
-    //lBB->dump();
-  }
 
 }
 
 uint64_t cfgBasicBlock::getEntryAddr() const {
   if(not(rawInsns.empty())) {
-    return rawInsns.at(0).second;
+    return rawInsns.at(0).pc;
   }
   else if(bb != nullptr) {
     die();

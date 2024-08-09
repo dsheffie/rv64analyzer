@@ -4,6 +4,7 @@
 #include <array>
 #include <set>
 #include <vector>
+#include "helper.hh"
 
 template <typename T>
 class MipsRegTable {
@@ -49,17 +50,21 @@ public:
   const std::vector<ssaInsn*> &getSources() const {
     return sources;
   }
-  std::vector<ssaInsn*> &getSources() {
-    return sources;
-  }
   insnDefType getInsnType() const {
     return insnType;
+  }
+  void addSrc(ssaInsn *src) {
+    sources.push_back(src);
+    src->uses.insert(this);
   }
   virtual uint32_t destRegister() const {
     return 0;
   }
   virtual bool isFloatingPoint() const {
     return false;
+  }
+  virtual void hookupRegs(MipsRegTable<ssaInsn> &tbl) {
+    die();
   }
 };
 

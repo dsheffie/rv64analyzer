@@ -21,8 +21,8 @@ uint64_t basicBlock::cfgCnt = 0;
 bool basicBlock::hasJR(bool isRet) const {
     if(isRet) {
       for(const auto & p : vecIns) {
-	if(is_jr(p.first)) {
-	  riscv_t m(p.first);
+	if(is_jr(p.inst)) {
+	  riscv_t m(p.inst);
 	  return (m.jj.rs1 == 1) or (m.jj.rs1 == 5);
 	}
       }
@@ -33,39 +33,12 @@ bool basicBlock::hasJR(bool isRet) const {
     }
 }
 
-
-bool basicBlock::canCompileRegion(std::vector<basicBlock*> &region ) {
-  for(size_t bIdx = 0, tLen=region.size(); bIdx < tLen; bIdx++) {
-    bool gotBrOrJmp = false;
-    basicBlock *b = region.at(bIdx);
-    basicBlock *nB = (bIdx == (region.size()-1)) ? region.at(0) : region.at(bIdx+1);
-    for(size_t i = 0, vLen = b->vecIns.size(); i < vLen; i++) {
-      uint32_t insn = b->vecIns[i].first;
-      gotBrOrJmp |= isBranchOrJump(insn);
-      if(!compile::canCompileInstr(insn)) {
-	if(globals::verbose) {
-	  uint32_t addr = b->vecIns[i].second;
-	  std::cout << std::hex << addr << std::dec << ":"
-		    << getAsmString(insn, addr)
-		    << " : can't compile\n";
-	}
-	return false;
-      }
-    }
-    if(not(gotBrOrJmp) and ((b->termAddr+4) != nB->entryAddr)) {
-      return false;
-    }
-  }
-  return true;
-}
-
-
 void basicBlock::repairBrokenEdges() {
   const ssize_t n_inst = vecIns.size();
   bool found_cflow_insn = false;
   assert(n_inst != 0);
   for(ssize_t i = n_inst - 1; (i >= 0) and not(found_cflow_insn); i--) {
-    uint32_t inst = vecIns.at(i).first;
+    uint32_t inst = vecIns.at(i).inst;
     if(is_jr(inst)) {
       found_cflow_insn = true;
     }
@@ -82,7 +55,7 @@ void basicBlock::repairBrokenEdges() {
   /* if a basicblock isn't terminated with a branch or jump
    * ensure that it only has one successor */
   if(not(found_cflow_insn) and (succs.size() != 1)) {
-    const uint32_t nextpc = vecIns.at(n_inst-1).second + 4;
+    const uint64_t nextpc = vecIns.at(n_inst-1).pc + 4;
     while(succs.size() != 1) {
       for(basicBlock *nbb : succs) {
 	if(nbb->getEntryAddr() != nextpc) {
@@ -125,7 +98,7 @@ void basicBlock::setReadOnly() {
   if(not(readOnly)) {
     readOnly = true;
     for(size_t i = 0, len = vecIns.size(); i < len; i++) {
-      uint32_t insn = vecIns[i].first;
+      uint32_t insn = vecIns[i].inst;
       hasjr |= is_jr(insn);
       hasjalr |= is_jalr(insn);
       hasjal |= is_jal(insn);
@@ -144,7 +117,7 @@ void basicBlock::setReadOnly() {
 
 
 bool basicBlock::fallsThru() const {
-  bool termIsBranch = isBranchOrJump(vecIns.at(getNumIns()-1).first);
+  bool termIsBranch = isBranchOrJump(vecIns.at(getNumIns()-1).inst);
   return not(termIsBranch);
 }
 
@@ -188,9 +161,9 @@ basicBlock::basicBlock(uint64_t entryAddr, basicBlock *prev) : basicBlock(entryA
   prev->addSuccessor(this);
 }
 
-void basicBlock::addIns(uint32_t inst, uint64_t addr) {
+void basicBlock::addIns(uint32_t inst, uint64_t addr, uint64_t vpc) {
   if(not(readOnly)) {
-    vecIns.emplace_back(inst,addr);
+    vecIns.emplace_back(inst,addr,vpc);
     insMap[addr] = this;
   }
 }
@@ -337,8 +310,8 @@ std::ostream &operator<<(std::ostream &out, const basicBlock &bb) {
       << endl;
     
   for(size_t i = 0; i < bb.vecIns.size(); i++){
-    uint32_t inst = bb.vecIns[i].first;
-    uint32_t addr = bb.entryAddr + i*4;
+    uint32_t inst = bb.vecIns[i].inst;
+    uint64_t addr = bb.entryAddr + i*4;
     string asmString = getAsmString(inst, addr);
     out << hex << addr << dec << " : " << asmString << endl;
     if(addr == 0) {
@@ -403,8 +376,8 @@ void basicBlock::report(std::string &s, uint64_t icnt) {
   double frac = ((double)inscnt / (double)icnt)*100.0;
   bool hasFP = false, hasMonitor = false;
   for(size_t i = 0; i < vecIns.size(); i++) {
-    hasFP |= isFloatingPoint(vecIns[i].first);
-    hasMonitor |= is_monitor(vecIns[i].first);
+    hasFP |= isFloatingPoint(vecIns[i].inst);
+    hasMonitor |= is_monitor(vecIns[i].inst);
   }
   sprintf(buf,"uncompiled basicblock(monitor=%d,fp=%d) @ 0x%x (inscnt=%zu, %g%%)\n", 
 	  (int)hasMonitor, (int)hasFP, getEntryAddr(), (size_t)inscnt, frac);
@@ -583,8 +556,8 @@ funcComplStatus findFuncWithInline(basicBlock* entryBB,
     else {
       uint32_t jaddr = ~0U;
       for(auto &p : bb->getVecIns())  {
-	if(is_jal(p.first)) {
-	  jaddr = p.second;
+	if(is_jal(p.inst)) {
+	  jaddr = p.pc;
 	  break;
 	}
       }
@@ -628,14 +601,14 @@ void basicBlock::toposort(basicBlock *src, const std::set<basicBlock*> &valid, s
 bool basicBlock::hasTermDirectBranchOrJump(uint64_t &target, uint64_t &fallthru) const {
   size_t ni = vecIns.size();
   assert(ni != 0);
-  fallthru = vecIns.at(ni-1).second + 4;
-  return isDirectBranchOrJump(vecIns.at(ni-1).first, vecIns.at(ni-1).second, target);
+  fallthru = vecIns.at(ni-1).pc + 4;
+  return isDirectBranchOrJump(vecIns.at(ni-1).inst, vecIns.at(ni-1).pc, target);
   
 }
 
 bool basicBlock::sanityCheck() {
   for(ssize_t i = 0, ni = vecIns.size()-1; i < ni; i++) {
-    if(isBranchOrJump(vecIns.at(i).first)) {
+    if(isBranchOrJump(vecIns.at(i).inst)) {
       std::cerr << * this;
       die();
     }

@@ -71,6 +71,7 @@ class phiNode : public ssaInsn {
   llvm::BasicBlock *getLLVMParentBlock(cfgBasicBlock *b);
   virtual void print() const = 0;
   virtual void addIncomingEdge(regionCFG *cfg, cfgBasicBlock *b)  = 0;
+  virtual void hookupRegs(MipsRegTable<ssaInsn> &tbl) override;
 };
 
 class gprPhiNode : public phiNode {
@@ -129,15 +130,6 @@ class fcrPhiNode : public phiNode {
   }
 };
 
-class icntPhiNode : public phiNode {
-public:
-  icntPhiNode(uint32_t id=0) : phiNode(insnDefType::icnt) {}
-  void makeLLVMPhi(regionCFG *cfg, llvmRegTables& regTbl) override;
-  void addIncomingEdge(regionCFG *cfg, cfgBasicBlock *b) override;
-  void print() const override {
-    printf("%s\n", __PRETTY_FUNCTION__);
-  }
-};
 
 class llvmRegTables : public MipsRegTable<llvm::Value> {
 public:
@@ -169,6 +161,24 @@ public:
 };
 
 
+class ssaRegTables : public MipsRegTable<ssaInsn> {
+public:
+  regionCFG *cfg = nullptr;
+  ssaRegTables(regionCFG *cfg);
+  ssaRegTables();
+  ssaInsn *loadGPR(uint32_t gpr);
+  ssaInsn *setGPR(uint32_t gpr, uint32_t x);
+  ssaInsn *loadFPR(uint32_t fpr);
+  ssaInsn *loadFCR(uint32_t fcr);
+  ssaInsn *getFPR(uint32_t fpr, fprUseEnum useType=fprUseEnum::unused);
+  void setFPR(uint32_t fpr, ssaInsn *v);
+  void storeGPR(uint32_t gpr);
+  void storeFPR(uint32_t fpr);
+  void storeFCR(uint32_t fcr);
+  void copy(const ssaRegTables &other);
+};
+
+
 std::ostream &operator<<(std::ostream &out, const cfgBasicBlock &bb);
 
 class cfgBasicBlock {
@@ -177,7 +187,10 @@ class cfgBasicBlock {
   friend class regionCFG;
   basicBlock *bb;
   bool hasTermBranchOrJump;
+  
   llvmRegTables termRegTbl;
+  ssaRegTables ssaRegTbl;
+  
   llvm::BasicBlock *lBB;
   cfgBasicBlock *idombb;
   std::set<cfgBasicBlock*> dtree_succs;
@@ -193,7 +206,7 @@ class cfgBasicBlock {
   std::set<cfgBasicBlock*> preds;
   std::set<cfgBasicBlock*> succs;
   std::set<cfgBasicBlock*> dfrontier;
-  std::vector<basicBlock::insPair> rawInsns;
+  std::vector<basicBlock::instruction> rawInsns;
   std::vector<Insn*> insns;
   std::vector<ssaInsn*> ssaInsns;
 
@@ -208,15 +221,13 @@ class cfgBasicBlock {
   ssize_t dt_max_ancestor_dfn = -1;
 
   
-  llvm::BasicBlock *getSuccLLVMBasicBlock(uint32_t pc);
+  llvm::BasicBlock *getSuccLLVMBasicBlock(uint64_t pc);
   void addPhiNode(gprPhiNode *phi);
   void addPhiNode(fprPhiNode *phi);
   void addPhiNode(fcrPhiNode *phi);
-  void addPhiNode(icntPhiNode *phi);
   bool checkIfPlausableSuccessors();
   void addWithInCFGEdges(regionCFG *cfg);
   bool has_jr_jalr();
-  bool canCompile() const;
   bool hasFloatingPoint(uint32_t *typeCnts) const;
   void print();
   uint64_t getExitAddr() const;
@@ -224,12 +235,10 @@ class cfgBasicBlock {
   std::string getName() const;
 
   void traverseAndRename(regionCFG *cfg);  
-  void traverseAndRename(regionCFG *cfg, llvmRegTables regTbl);
+  void traverseAndRename(regionCFG *cfg, ssaRegTables regTbl);
   
   void patchUpPhiNodes(regionCFG *cfg);
   void bindInsns(regionCFG *cfg);
-  
-  cfgBasicBlock *splitBB(uint64_t splitPC);
   
   void addSuccessor(cfgBasicBlock *s);
   void delSuccessor(cfgBasicBlock *s);
@@ -343,8 +352,6 @@ protected:
   static std::set<regionCFG*> regionCFGs;
   std::unordered_map<std::string, llvm::Function*> builtinFuncts;
 
-  void doLiveAnalysis(std::ostream &out) const;
-  
   uint64_t &getuuid() {
     return uuid;
   }
@@ -388,7 +395,6 @@ protected:
   std::vector<cfgBasicBlock*> cfgBlocks;
   std::map<uint64_t, cfgBasicBlock*> cfgBlockMap;
 
-  void splitBBs();
   bool allBlocksReachable(cfgBasicBlock *root);
   void computeDominance();
   void computeDominanceFrontiers();

@@ -75,7 +75,7 @@ std::map<uint64_t, basicBlock*> basicBlock::insMap;
 int main(int argc, char *argv[]) {
   retire_trace rt;
   initCapstone();
-  std::ifstream ifs("retiretrace.dump", std::ios::binary);
+  std::ifstream ifs("test.dump", std::ios::binary);
   boost::archive::binary_iarchive ia(ifs);  
   ia >> rt;
 

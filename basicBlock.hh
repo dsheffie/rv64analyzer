@@ -22,8 +22,14 @@ std::ostream &operator<<(std::ostream &out, const basicBlock &bb);
 
 class basicBlock : public execUnit {
 public:
-  typedef std::pair<uint32_t, uint64_t> insPair;
-  typedef std::vector<insPair, backtrace_allocator<insPair>> insContainer;
+  struct instruction {
+    uint32_t inst;
+    uint64_t pc;
+    uint64_t vpc;
+    instruction(uint32_t inst, uint64_t pc, uint64_t vpc) :
+      inst(inst), pc(pc), vpc(vpc) {}
+  };
+  typedef std::vector<instruction, backtrace_allocator<instruction>> insContainer;
 private:
   friend std::ostream &operator<<(std::ostream &out, const basicBlock &bb);
   friend int main(int, char**);
@@ -49,8 +55,8 @@ private:
   bool hasjr=false, hasjal=false, hasjalr = false, hasmonitor=false;
   uint64_t totalEdges = 0;
   insContainer vecIns;
-  std::map<uint32_t, uint64_t> edgeCnts;
-  static bool canCompileRegion(std::vector<basicBlock*> &region);
+  std::map<uint64_t, uint64_t> edgeCnts;
+
   /* heads of regions that include this block */
   std::set<basicBlock*> cfgInRegions;
   void toposort(const std::set<basicBlock*> &valid, std::list<basicBlock*> &ordered, std::set<basicBlock*> &visited);
@@ -70,7 +76,7 @@ public:
   void print() const;
   void repairBrokenEdges();
   ssize_t sizeInBytes() const;
-  void addIns(uint32_t inst, uint64_t addr);
+  void addIns(uint32_t inst, uint64_t addr, uint64_t vpc);
   basicBlock(uint64_t entryAddr, basicBlock *prev);
   basicBlock(uint64_t entryAddr);
   ~basicBlock();

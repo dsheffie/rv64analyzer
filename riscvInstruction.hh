@@ -15,7 +15,6 @@ class Insn;
 enum regEnum {uninit=0,constant,variant};
 enum opPrecType {integerprec=0,singleprec,doubleprec,fpspecialprec,unknownprec,dummyprec};
 
-
 Insn* getInsn(uint32_t inst, uint64_t addr);
 
 class Insn : public ssaInsn {
@@ -35,44 +34,34 @@ public:
   void codeGen(cfgBasicBlock *cBB, llvmRegTables& regTbl);
   std::string getString() const;
   
-  virtual bool generateIR(cfgBasicBlock *cBB,  llvmRegTables& regTbl);
   virtual void recDefines(cfgBasicBlock *cBB, regionCFG *cfg);
   virtual void recUses(cfgBasicBlock *cBB);
   
   virtual opPrecType getPrecType() const {
     return integerprec;
   }
-  virtual bool canCompile() const {
-    return true;
-  }  
-  virtual bool isLikelyBranch() const {
-    return false;
-  }  
-  uint32_t getAddr() const {
+  uint64_t getAddr() const {
     return addr;
   }
   Insn(uint32_t inst, uint64_t addr, insnDefType insnType = insnDefType::unknown) :
     ssaInsn(insnType), inst(inst), addr(addr), r(inst) {
   }
+  void hookupRegs(MipsRegTable<ssaInsn> &tbl) override;
   virtual ~Insn() {}
 };
 
-class abstractBranch {
-public:
- virtual uint64_t getTakenAddr() const = 0;
- virtual uint64_t getNotTakenAddr() const = 0; 
-};
+
 
 class iTypeInsn : public Insn  {
 public:
   iTypeInsn(uint32_t inst, uint64_t addr, insnDefType insnType = insnDefType::gpr) : 
     Insn(inst, addr, insnType) {}
   void recDefines(cfgBasicBlock *cBB, regionCFG *cfg) override;
-  void recUses(cfgBasicBlock *cBB) override;
-  bool generateIR(cfgBasicBlock *cBB,  llvmRegTables& regTbl) override;
+  void recUses(cfgBasicBlock *cBB) override;  
+  void hookupRegs(MipsRegTable<ssaInsn> &tbl) override;  
 };
 
-class iBranchTypeInsn : public Insn, public abstractBranch {
+class iBranchTypeInsn : public Insn {
 protected:
   int64_t tAddr=0,ntAddr=0;
 public:
@@ -87,16 +76,12 @@ public:
    tAddr = disp + addr;
    ntAddr = addr + 4;
  }
-  uint64_t getTakenAddr() const override { 
-    return tAddr; 
-  }
-  uint64_t getNotTakenAddr() const override { 
-    return ntAddr; 
-  }
+  uint64_t getTakenAddr() const { return tAddr; }
+  uint64_t getNotTakenAddr() const { return ntAddr; }
+  
   void recDefines(cfgBasicBlock *cBB, regionCFG *cfg) override ;
   void recUses(cfgBasicBlock *cBB) override;
-  virtual bool handleBranch(cfgBasicBlock *cBB, llvmRegTables& regTbl,
-			    llvm::Value *vCMP);
+  void hookupRegs(MipsRegTable<ssaInsn> &tbl) override;    
 };
 
 
@@ -106,7 +91,7 @@ public:
    Insn(inst, addr, insnType){}
  void recDefines(cfgBasicBlock *cBB, regionCFG *cfg) override;
  void recUses(cfgBasicBlock *cBB) override;
-  bool generateIR(cfgBasicBlock *cBB,  llvmRegTables& regTbl) override;
+ void hookupRegs(MipsRegTable<ssaInsn> &tbl) override;    
 };
 
 
@@ -124,9 +109,9 @@ public:
     jaddr += addr;
     return jaddr;
   }
-  bool generateIR(cfgBasicBlock *cBB,  llvmRegTables& regTbl) override;
   void recDefines(cfgBasicBlock *cBB, regionCFG *cfg) override {}
   void recUses(cfgBasicBlock *cBB) override {}
+  void hookupRegs(MipsRegTable<ssaInsn> &tbl) override {}
 };
 
 class insn_jal : public Insn {
@@ -143,9 +128,9 @@ public:
     jaddr += addr;
     return jaddr;
   }  
-  bool generateIR(cfgBasicBlock *cBB,  llvmRegTables& regTbl) override;
   void recDefines(cfgBasicBlock *cBB, regionCFG *cfg) override;
   void recUses(cfgBasicBlock *cBB) override {}
+  void hookupRegs(MipsRegTable<ssaInsn> &tbl) override;      
 };
 
 
@@ -153,20 +138,18 @@ class insn_jr : public Insn {
 public:
   insn_jr(uint32_t inst, uint64_t addr) :
     Insn(inst, addr, insnDefType::no_dest) {}
-  bool generateIR(cfgBasicBlock *cBB,  llvmRegTables& regTbl) override;
-  bool canCompile() const override;
   void recDefines(cfgBasicBlock *cBB, regionCFG *cfg) override {}
   void recUses(cfgBasicBlock *cBB) override;
+  void hookupRegs(MipsRegTable<ssaInsn> &tbl) override;      
 };
 
 class insn_jalr : public Insn {
 public:
   insn_jalr(uint32_t inst, uint64_t addr) :
     Insn(inst, addr, insnDefType::gpr) {}
-  bool canCompile() const override;
-  bool generateIR(cfgBasicBlock *cBB,  llvmRegTables& regTbl) override;
   void recDefines(cfgBasicBlock *cBB, regionCFG *cfg) override;
   void recUses(cfgBasicBlock *cBB) override;
+  void hookupRegs(MipsRegTable<ssaInsn> &tbl) override;    
 };
 
 

@@ -30,8 +30,8 @@ static void getNextBlock(uint64_t pc) {
   globals::cBB = nBB;
 }
 
-void execRiscv(uint32_t inst, uint64_t pc, uint64_t npc) {
-  globals::cBB->addIns(inst, pc);
+void execRiscv(uint32_t inst, uint64_t pc, uint64_t npc, uint64_t vpc) {
+  globals::cBB->addIns(inst, pc, vpc);
   uint32_t opcode = inst & 127;
   switch(opcode)
     {
@@ -80,7 +80,7 @@ void buildCFG(const std::list<inst_record> &trace) {
 #endif
     
     if( not(globals::cBB->isReadOnly()) ) {
-      execRiscv(ir.inst, ir.pc, npc);
+      execRiscv(ir.inst, ir.pc, npc, ir.vpc);
     }
     else if(ir.pc == globals::cBB->getTermAddr()) {
       auto nbb = globals::cBB->findBlock(npc);
