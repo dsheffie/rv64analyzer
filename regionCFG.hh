@@ -53,7 +53,7 @@ class phiNode : public ssaInsn {
   virtual void print() const = 0;
   virtual void addIncomingEdge(regionCFG *cfg, cfgBasicBlock *b)  = 0;
   virtual void hookupRegs(MipsRegTable<ssaInsn> &tbl) override;
-  virtual void dump(std::ostream &out) const override;
+  virtual void dumpSSA(std::ostream &out) const override;
 };
 
 class gprPhiNode : public phiNode {
@@ -168,7 +168,6 @@ class cfgBasicBlock {
   void addPhiNode(gprPhiNode *phi);
   void addPhiNode(fprPhiNode *phi);
   void addPhiNode(fcrPhiNode *phi);
-  bool checkIfPlausableSuccessors();
   void addWithInCFGEdges(regionCFG *cfg);
   bool has_jr_jalr();
   bool hasFloatingPoint(uint32_t *typeCnts) const;
@@ -337,6 +336,7 @@ protected:
 
   bool analyzeGraph();
   void dumpIR();
+  void dumpRISCV();  
   void emulate(state_t *s);
   void print();
   void asDot() const;

@@ -42,7 +42,7 @@ public:
     ssaInsn(insnType), inst(inst), addr(addr), r(inst) {
   }
   void hookupRegs(MipsRegTable<ssaInsn> &tbl) override;
-  void dump(std::ostream &out) const override;
+  void dumpSSA(std::ostream &out) const override;
   virtual ~Insn() {}
 };
 

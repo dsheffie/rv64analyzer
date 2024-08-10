@@ -92,32 +92,6 @@ void cfgBasicBlock::addWithInCFGEdges(regionCFG *cfg) {
 
 }
 
-bool cfgBasicBlock::checkIfPlausableSuccessors() {
-  /* find terminating instruction */
-  iBranchTypeInsn *iBranch = nullptr;
-  for(size_t i = 0,n=insns.size(); i < n; i++) {
-    iBranch = dynamic_cast<iBranchTypeInsn*>(insns[i]);
-    if(iBranch) 
-      break;
-  }
-  if(!iBranch)
-    return true;
-
-  bool impossible = false;
-
-
-  for(auto cbb : succs) {
-    if(cbb->insns.empty())
-      continue;
-    Insn *ins = cbb->insns[0];
-    uint32_t eAddr = ins->getAddr();
-    if(iBranch->getTakenAddr() == eAddr || iBranch->getNotTakenAddr() == eAddr)
-      continue;
-    impossible |= true;
-  }
-  
-  return not(impossible);
-}
 
 void cfgBasicBlock::addSuccessor(cfgBasicBlock *s) {
   succs.insert(s);
@@ -395,7 +369,13 @@ void cfgBasicBlock::traverseAndRename(regionCFG *cfg, ssaRegTables prevRegTbl) {
     auto insn = insns.at(i);
     insn->hookupRegs(regTbl);
   }
-
+  assert(ssaInsns.empty());  
+  for(auto p : phiNodes) {
+    ssaInsns.push_back(p);
+  }
+  for(auto ins : insns) {
+    ssaInsns.push_back(ins);
+  }
   
   ssaRegTbl.copy(regTbl);
   

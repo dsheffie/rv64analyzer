@@ -19,8 +19,14 @@ void Insn::hookupRegs(MipsRegTable<ssaInsn> &tbl) {
   std::cout << *this;
 }
 
-void Insn::dump(std::ostream &out) const {
-  out << *this;
+void Insn::dumpSSA(std::ostream &out) const {
+  out << this;
+  if(sources.size()) {
+    out << "<- ";
+    for(auto src : sources) {
+      out << src << " ";
+    }
+  }
 }
 
 

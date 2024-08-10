@@ -437,6 +437,7 @@ bool regionCFG::analyzeGraph() {
 
  
   dumpIR();
+  dumpRISCV();
   asDot();
   
   return true;
@@ -666,9 +667,22 @@ bool regionCFG::dominates(cfgBasicBlock *A, cfgBasicBlock *B) const {
 
 void phiNode::hookupRegs(MipsRegTable<ssaInsn> &tbl) {}
 
-void phiNode::dump(std::ostream &out) const {
-  //out << *this;
+void phiNode::dumpSSA(std::ostream &out) const {
+  out << this;
+  out << "<- ";
+  for(auto p : inBoundEdges) {
+    auto bb = p.first;
+    auto ins = p.second;
+    out << "(" <<
+      std::hex <<
+      bb->getEntryAddr() <<
+      std::dec <<
+      "," << ins << ")" << " ";
+  }
+
 }
+
+
 
 
 void gprPhiNode::addIncomingEdge(regionCFG *cfg, cfgBasicBlock *b) {
@@ -772,12 +786,39 @@ std::ostream &operator<<(std::ostream &out, const regionCFG &cfg) {
 
 basicBlock* regionCFG::run(state_t *ss) { return nullptr; }
 
+void regionCFG::dumpRISCV() {
+  std::stringstream ss;
+  ss << "cfg_" << std::hex << cfgHead->getEntryAddr() << std::dec << ".txt";
+  std::ofstream o(ss.str());
+  o << *this;
+  o.close();
+}
+
 void regionCFG::dumpIR() {
-   std::string o_name= "cfg_" + toStringHex(cfgHead->getEntryAddr()) + ".txt";
-   std::ofstream o(o_name.c_str());
-   o << *this;
-   o.close();
- }
+  std::stringstream ss;
+  ss << "ssa_" << std::hex << cfgHead->getEntryAddr() << std::dec << ".txt";
+  std::ofstream out(ss.str());
+
+  std::vector<cfgBasicBlock*> topo;
+  toposort(topo);
+  for(size_t i = 0, n = topo.size(); i < n; i++) {
+    const cfgBasicBlock *bb = topo.at(i);
+    out << "block 0x" << std::hex << bb->getEntryAddr()
+       << std::dec << " : ";
+    for(const cfgBasicBlock *nbb : bb->getSuccs()) {
+      out << std::hex << nbb->getEntryAddr()
+         << std::dec << " ";
+    }
+    out << "\n";
+    for(auto ins : bb->ssaInsns) {
+      ins->dumpSSA(out);
+      out << "\n";
+    }
+  }
+  
+  //out << *this;
+  out.close();
+}
  
 
 void regionCFG::findLoop(std::set<cfgBasicBlock*> &loop, 
