@@ -559,7 +559,6 @@ regionCFG::regionCFG() : execUnit() {
   perfectNest = true;
   isMegaRegion = false;
   innerPerfectBlock = 0;
-  pmap = perfmap::getReference();
   runs = uuid = 0;
   minIcnt = std::numeric_limits<uint64_t>::max();
   maxIcnt = 0; 
@@ -576,7 +575,6 @@ regionCFG::regionCFG() : execUnit() {
 }
 regionCFG::~regionCFG() {
   regionCFGs.erase(regionCFGs.find(this));
-  pmap->relReference();
   
   for(auto cblk : cfgBlocks) {
     delete cblk;

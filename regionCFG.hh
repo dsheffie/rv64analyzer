@@ -16,7 +16,6 @@
 #include "ssaInsn.hh"
 #include "riscvInstruction.hh"
 #include "llvmInc.hh"
-#include "perfmap.hh"
 #include "debugSymbols.hh"
 
 class regionCFG;
@@ -356,7 +355,6 @@ protected:
   std::set<uint64_t> nextPCs;
   std::set<basicBlock*> blocks;
   compiledCFG codeBits;
-  perfmap *pmap;
 
  
   std::set<cfgBasicBlock*> gprDefinitionBlocks[32];

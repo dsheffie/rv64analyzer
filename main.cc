@@ -17,7 +17,6 @@
 #include "interpret.hh"
 #include "basicBlock.hh"
 #include "regionCFG.hh"
-#include "perfmap.hh"
 #include "debugSymbols.hh"
 #include "globals.hh"
 #include "simPoints.hh"
@@ -61,7 +60,6 @@ namespace globals {
   std::map<uint32_t, uint64_t> syscall_histo;
 }
 
-perfmap* perfmap::theInstance = nullptr;
 std::set<regionCFG*> regionCFG::regionCFGs;
 uint64_t regionCFG::icnt = 0;
 uint64_t regionCFG::iters = 0;
