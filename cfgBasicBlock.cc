@@ -1,6 +1,6 @@
 #include <ostream>
 #include <fstream>
-
+#include <cassert>
 #include "regionCFG.hh"
 #include "helper.hh"
 #include "globals.hh"
@@ -226,7 +226,6 @@ void cfgBasicBlock::print() {
 cfgBasicBlock::cfgBasicBlock(basicBlock *bb) :
   bb(bb),
   hasTermBranchOrJump(false),
-  lBB(nullptr),
   idombb(nullptr) {
   
   fprTouched.resize(32, fprUseEnum::unused);

@@ -1,12 +1,11 @@
 #include <cstdio>
 #include <cstdlib>
+#include <cassert>
 #include "disassemble.hh"
 #include "riscvInstruction.hh"
 #include "regionCFG.hh"
 #include "helper.hh"
 #include "globals.hh"
-
-typedef llvm::Value lv_t;
 
 std::ostream &operator<<(std::ostream &out, const Insn &ins) {
   out << "0x" << std::hex << ins.addr << std::dec 
@@ -314,20 +313,14 @@ std::string Insn::getString() const {
 
 
 
-void Insn::recDefines(cfgBasicBlock *cBB, regionCFG *cfg) {
-}
+void Insn::recDefines(cfgBasicBlock *cBB, regionCFG *cfg) {}
 
-void Insn::recUses(cfgBasicBlock *cBB) {
-}
+void Insn::recUses(cfgBasicBlock *cBB) {}
 
 
 void Insn::set(regionCFG *cfg, cfgBasicBlock *cBB) {
   this->cfg = cfg;  myBB = cBB;
 }
-
-void Insn::emitPrintPC() {}
-void Insn::saveInstAddress() {}
-void Insn::codeGen(cfgBasicBlock *cBB, llvmRegTables& regTbl) {}
 
 
 /* r-type */

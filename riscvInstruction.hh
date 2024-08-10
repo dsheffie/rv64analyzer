@@ -4,12 +4,10 @@
 #include <string>
 #include <cstdint>
 #include "ssaInsn.hh"
-#include "llvmInc.hh"
 #include "riscv.hh"
 
 class cfgBasicBlock;
 class regionCFG;
-class llvmRegTables;
 
 class Insn;
 enum regEnum {uninit=0,constant,variant};
@@ -27,11 +25,8 @@ protected:
   cfgBasicBlock *myBB = nullptr;
   
 public:
-  void saveInstAddress();
   void set(regionCFG *cfg, cfgBasicBlock *cBB);
-  void emitPrintPC();
   size_t getInsnId();
-  void codeGen(cfgBasicBlock *cBB, llvmRegTables& regTbl);
   std::string getString() const;
   
   virtual void recDefines(cfgBasicBlock *cBB, regionCFG *cfg);

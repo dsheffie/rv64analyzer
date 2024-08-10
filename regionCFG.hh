@@ -15,13 +15,11 @@
 #include "basicBlock.hh"
 #include "ssaInsn.hh"
 #include "riscvInstruction.hh"
-#include "llvmInc.hh"
 #include "debugSymbols.hh"
 
 class regionCFG;
 class Insn;
 class cfgBasicBlock;
-class llvmRegTables;
 
 #define __fpr_state_list(m) \
   m(unused) \
@@ -111,37 +109,6 @@ class fcrPhiNode : public phiNode {
   }
 };
 
-
-class llvmRegTables : public MipsRegTable<llvm::Value> {
-public:
-  regionCFG *cfg = nullptr;
-  llvm::IRBuilder<> *myIRBuilder = nullptr;
-  llvm::Value *iCnt = nullptr;
-  void initIcnt(); 
-  void incrIcnt(size_t amt); 
-  llvmRegTables(regionCFG *cfg);
-  llvmRegTables();
-  llvm::Value *loadGPR(uint32_t gpr);
-  llvm::Value *setGPR(uint32_t gpr, uint32_t x);
-  llvm::Value *loadFPR(uint32_t fpr);
-  llvm::Value *loadFCR(uint32_t fcr);
-  llvm::Value *getFPR(uint32_t fpr, fprUseEnum useType=fprUseEnum::unused);
-  void setFPR(uint32_t fpr, llvm::Value *v);
-  void storeGPR(uint32_t gpr);
-  void storeFPR(uint32_t fpr);
-  void storeFCR(uint32_t fcr);
-  void storeIcnt();
-  llvm::Value *getIcnt() {
-    return iCnt;
-  }
-  llvm::IRBuilder<> &getBuilder() const {
-    assert(myIRBuilder);
-    return *myIRBuilder;
-  }
-  void copy(const llvmRegTables &other);
-};
-
-
 class ssaRegTables : public MipsRegTable<ssaInsn> {
 public:
   regionCFG *cfg = nullptr;
@@ -169,10 +136,8 @@ class cfgBasicBlock {
   basicBlock *bb;
   bool hasTermBranchOrJump;
   
-  llvmRegTables termRegTbl;
   ssaRegTables ssaRegTbl;
   
-  llvm::BasicBlock *lBB;
   cfgBasicBlock *idombb;
   std::set<cfgBasicBlock*> dtree_succs;
 
@@ -182,7 +147,6 @@ class cfgBasicBlock {
   std::array<phiNode*,5> fcrPhis;
   std::array<phiNode*,1> icntPhis;
 
-  std::map<llvm::BasicBlock*, llvm::BasicBlock*> jrMap;
 
   std::set<cfgBasicBlock*> preds;
   std::set<cfgBasicBlock*> succs;
@@ -329,7 +293,6 @@ protected:
   static uint64_t icnt;
   static uint64_t iters;
   static std::set<regionCFG*> regionCFGs;
-  std::unordered_map<std::string, llvm::Function*> builtinFuncts;
 
   uint64_t &getuuid() {
     return uuid;

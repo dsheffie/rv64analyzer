@@ -167,25 +167,6 @@ void regionCFG::dropCompiled() {
     bb->dropCompiledCode();
   }
 }
-llvmRegTables::llvmRegTables(regionCFG *cfg) :
-  MipsRegTable<llvm::Value>(),
-  cfg(cfg),
-  iCnt(nullptr) {}
-
-llvmRegTables::llvmRegTables() :
-  MipsRegTable<llvm::Value>(),
-  cfg(nullptr),
-  myIRBuilder(nullptr),
-  iCnt(nullptr) {}
-
-void llvmRegTables::copy(const llvmRegTables &other) {
-  cfg = other.cfg;
-  myIRBuilder = other.myIRBuilder;
-  iCnt = other.iCnt;
-  fprTbl = other.fprTbl;
-  gprTbl = other.gprTbl;
-  fcrTbl = other.fcrTbl;
-}
 
 ssaRegTables::ssaRegTables(regionCFG *cfg) :
   MipsRegTable<ssaInsn>(),
@@ -201,41 +182,6 @@ void ssaRegTables::copy(const ssaRegTables &other) {
   gprTbl = other.gprTbl;
   fcrTbl = other.fcrTbl;  
 }
-
-llvm::Value *llvmRegTables::setGPR(uint32_t gpr, uint32_t x) {
-  return gprTbl[gpr];
-}
-
-llvm::Value *llvmRegTables::loadGPR(uint32_t gpr) {
-  return nullptr;
-}
-
-
-
-
-llvm::Value *llvmRegTables::getFPR(uint32_t fpr, fprUseEnum useType) {
-  return nullptr;
-}
-
-void llvmRegTables::setFPR(uint32_t fpr, llvm::Value *v) {}
-
-
-llvm::Value *llvmRegTables::loadFPR(uint32_t fpr) {
-  return nullptr;
-}
-
-
-llvm::Value *llvmRegTables::loadFCR(uint32_t fcr) {
-  return nullptr;
-}
-
-void llvmRegTables::initIcnt() {}
-void llvmRegTables::incrIcnt(size_t amt) {}
-void llvmRegTables::storeIcnt() {}
-void llvmRegTables::storeGPR(uint32_t gpr) {}
-void llvmRegTables::storeFPR(uint32_t fpr) {}
-void llvmRegTables::storeFCR(uint32_t fcr) {}
-
 
 void regionCFG::getRegDefBlocks() {
   for(auto cbb : cfgBlocks) {
@@ -486,7 +432,6 @@ bool regionCFG::analyzeGraph() {
     usesFCR |= (allFcrRead[i]!=0);
   }
   
-  //initLLVMAndGeneratePreamble();
   entryBlock->traverseAndRename(this);
   entryBlock->patchUpPhiNodes(this);
 
@@ -733,7 +678,6 @@ void gprPhiNode::addIncomingEdge(regionCFG *cfg, cfgBasicBlock *b) {
   assert(in);
 
   inBoundEdges.emplace_back(b, in);
-  //lPhi->addIncoming(v,getLLVMParentBlock(b));
 }
 
 void fprPhiNode::addIncomingEdge(regionCFG *cfg, cfgBasicBlock *b) {
