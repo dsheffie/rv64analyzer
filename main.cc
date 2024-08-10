@@ -19,7 +19,6 @@
 #include "regionCFG.hh"
 #include "debugSymbols.hh"
 #include "globals.hh"
-#include "simPoints.hh"
 
 extern const char* githash;
 int sArgc = -1;

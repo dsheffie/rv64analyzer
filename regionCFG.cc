@@ -160,13 +160,6 @@ void inducePhis(const std::set<cfgBasicBlock*> &defBBs, int id) {
   }
 }
 
-void regionCFG::dropCompiled() {
-  while(not(regionCFGs.empty())) {
-    auto bb = (*regionCFGs.begin())->head;
-    assert(bb != nullptr);
-    bb->dropCompiledCode();
-  }
-}
 
 ssaRegTables::ssaRegTables(regionCFG *cfg) :
   MipsRegTable<ssaInsn>(),
@@ -190,7 +183,7 @@ void regionCFG::getRegDefBlocks() {
     }
     /* Union bitvectors */
     for(size_t i = 0; i < 32; i++) {
-      allGprRead[i] = allGprRead[i] | cbb->gprRead[i];
+      allGprRead[i] = allGprRead[i] or cbb->gprRead[i];
     }
   }
 }
@@ -211,17 +204,14 @@ bool regionCFG::allBlocksReachable(cfgBasicBlock *root) {
       q.push(nbb);
     }
   }
-#if 0
-  print_var_hex(root->getEntryAddr());
-  print_var(l.size());
-  for(auto &z : l) {
-    std::cout << std::hex << z->getEntryAddr() << std::dec << " : "
-	      << z->getSuccs().size() << "\n";
-  }
-#endif
+
   for(auto bb : cfgBlocks) {
     if(v.find(bb) == v.end()) {
-      printf("couldn't find block %x:\n", bb->getEntryAddr());
+      std::cout << "couldnt find block "
+		<< std::hex
+		<< bb->getEntryAddr()
+		<< std::dec
+		<< "\n";
     }
   }
   /*
@@ -233,7 +223,6 @@ bool regionCFG::allBlocksReachable(cfgBasicBlock *root) {
 
 
 bool regionCFG::buildCFG(std::vector<std::vector<basicBlock*> > &regions) {
-  compileTime = timestamp();
   std::set<basicBlock*> heads;
   std::map<basicBlock*, cfgBasicBlock*> cfgMap;
   std::vector<basicBlock*> blockvec;
@@ -337,7 +326,6 @@ bool regionCFG::analyzeGraph() {
   entryBlock = new cfgBasicBlock(nullptr);
   cfgBlocks.push_back(entryBlock);
   entryBlock->addSuccessor(cfgHead);
-  globals::nCfgCompiles++;
   
   if(cfgBlocks.size() < 512) {
     computeDominance();
@@ -391,7 +379,6 @@ regionCFG::regionCFG() : execUnit() {
   entryBlock = 0;
   hasBoth = false;
   validDominanceAcceleration = false;
-  compileTime = 0.0;
   runHistory.fill(0);
 }
 regionCFG::~regionCFG() {

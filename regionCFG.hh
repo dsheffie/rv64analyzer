@@ -54,9 +54,6 @@ public:
   regionCFG *cfg = nullptr;
   ssaRegTables(regionCFG *cfg);
   ssaRegTables();
-  ssaInsn *loadGPR(uint32_t gpr);
-  ssaInsn *setGPR(uint32_t gpr, uint32_t x);
-  void storeGPR(uint32_t gpr);
   void copy(const ssaRegTables &other);
 };
 
@@ -209,7 +206,6 @@ protected:
   bool perfectNest = false;
   bool hasBoth = false;
   bool validDominanceAcceleration = false;
-  double compileTime = 0.0;
   
  public:
   friend std::ostream &operator<<(std::ostream &out, const regionCFG &cfg);
@@ -261,7 +257,6 @@ protected:
 		cfgBasicBlock *hbb);
   void findNaturalLoops();
   bool dominates(cfgBasicBlock *A, cfgBasicBlock *B) const;
-  static void dropCompiled();
   uint64_t getEntryAddr() const override;
   basicBlock* run(state_t *s) override;
   void info() override;

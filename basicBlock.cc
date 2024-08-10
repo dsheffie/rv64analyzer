@@ -13,7 +13,6 @@
 #include <functional>
 
 #include "globals.hh"
-#include "simPoints.hh"
 
 uint64_t basicBlock::cfgCnt = 0;
 
@@ -137,18 +136,6 @@ void basicBlock::addSuccessor(basicBlock *bb) {
   succsMap[bb->entryAddr] = bb;
   bb->preds.insert(this);
 
-  
-  if( globals::enableCFG and (succs.size() > 2) and not(hasjr or hasjalr or hasmonitor) ) {
-    std::cerr << KRED << "ERROR: 0x" 
-	      << std::hex << getEntryAddr() << std::dec
-	      << " has " << succs.size() <<  " successors!"
-	      << KNRM << std::endl;
-    std::cerr << *this;
-    for(auto succ : succs) {
-      std::cerr << "\t0x" << std::hex << succ->getEntryAddr() << std::dec << "\n";
-    }
-    die();
-  }
 }
 
 basicBlock::basicBlock(uint64_t entryAddr) : execUnit(), entryAddr(entryAddr) {
