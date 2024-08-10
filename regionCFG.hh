@@ -15,7 +15,6 @@
 #include "basicBlock.hh"
 #include "ssaInsn.hh"
 #include "riscvInstruction.hh"
-#include "debugSymbols.hh"
 
 class regionCFG;
 class Insn;

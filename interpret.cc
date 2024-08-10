@@ -14,7 +14,6 @@
 #include "basicBlock.hh"   // for basicBlock
 #include "disassemble.hh"  // for getCondName
 #include "helper.hh"       // for extractBit, UNREACHABLE, bswap, setBit
-#include "saveState.hh"    // for dumpState
 #include "state.hh"        // for state_t, operator<<
 #include "riscv.hh"
 #define ELIDE_LLVM

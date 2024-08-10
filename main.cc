@@ -17,7 +17,6 @@
 #include "interpret.hh"
 #include "basicBlock.hh"
 #include "regionCFG.hh"
-#include "debugSymbols.hh"
 #include "globals.hh"
 
 extern const char* githash;

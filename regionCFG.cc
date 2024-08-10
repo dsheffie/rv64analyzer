@@ -9,9 +9,7 @@
 #include "regionCFG.hh"
 #include "helper.hh"
 #include "disassemble.hh"
-#include "debugSymbols.hh"
 #include "globals.hh"
-#include "saveState.hh"
 #include "interpret.hh"
 
 static regionCFG *currCFG = nullptr;
