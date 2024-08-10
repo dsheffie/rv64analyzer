@@ -192,6 +192,8 @@ std::ostream &operator<<(std::ostream &out, const regionCFG &cfg);
 class regionCFG : public execUnit {
 protected:
   std::map<int64_t, double> &tip;
+  std::map<uint64_t,uint64_t> &counts;
+
   /* to be constructor list initialized */
   basicBlock *head = nullptr;
   cfgBasicBlock *cfgHead = nullptr;
@@ -233,7 +235,7 @@ protected:
   void fastDominancePreComputation();
   void insertPhis();
   void getRegDefBlocks();
-  regionCFG(std::map<int64_t, double> &m);
+  regionCFG(std::map<int64_t, double> &m, std::map<uint64_t,uint64_t> &c);
   ~regionCFG();
   bool buildCFG(std::vector<std::vector<basicBlock*> > &regions);
 

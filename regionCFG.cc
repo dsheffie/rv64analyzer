@@ -364,7 +364,9 @@ bool regionCFG::analyzeGraph() {
   return true;
 }
 
-regionCFG::regionCFG(std::map<int64_t, double> &tip) : execUnit(), tip(tip) {
+regionCFG::regionCFG(std::map<int64_t, double> &tip,
+		     std::map<uint64_t, uint64_t> &counts) :
+  execUnit(), tip(tip), counts(counts) {
   regionCFGs.insert(this);
   perfectNest = true;
   innerPerfectBlock = 0;
@@ -609,7 +611,7 @@ void regionCFG::asDot() const {
 		  << std::dec
 		  << " in the tip map\n";
       }
-      double cycles = tip[addr];
+      double cycles = static_cast<double>(tip[addr]) / counts[addr];
       auto asmString = getAsmString(inst, addr);
       out << std::hex << p.vpc << std::dec
 	  << " : " << asmString

@@ -56,7 +56,7 @@ void execRiscv(uint32_t inst, uint64_t pc, uint64_t npc, uint64_t vpc) {
 }
 
 
-void buildCFG(const std::list<inst_record> &trace) {
+void buildCFG(const std::list<inst_record> &trace, std::map<uint64_t,uint64_t> &counts) {
   auto nit = trace.begin(); nit++;
   uint64_t cnt = 0;
   for(auto it = trace.begin(), E = trace.end(); nit != E; ++it) {
@@ -65,7 +65,7 @@ void buildCFG(const std::list<inst_record> &trace) {
     if(nit != E) {
       npc = nit->pc;
     }
- 
+    counts[ir.pc]++;
 #if 0
     printf("%lx %s -> %lx (cbb %lx, term %lx, read only %d)\n",
 	   ir.pc,

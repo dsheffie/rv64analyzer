@@ -69,35 +69,35 @@ int main(int argc, char *argv[]) {
   retire_trace rt;
   tip_record tip;
   initCapstone();
-  {
-    std::ifstream ifs("test.dump", std::ios::binary);
-    boost::archive::binary_iarchive ia(ifs);  
-    ia >> rt;
-  }
-  {
-    std::ifstream ifs("tip.dump", std::ios::binary);
-    boost::archive::binary_iarchive ia(ifs);  
-    ia >> tip;
-  }  
+  std::map<uint64_t,uint64_t> counts;
+  std::ifstream trace_ifs("test.dump", std::ios::binary);
+  boost::archive::binary_iarchive rt_(trace_ifs);
+  std::ifstream tip_ifs("tip.dump", std::ios::binary);
+  boost::archive::binary_iarchive tip_(tip_ifs);  
+  
+  rt_ >> rt;
+  tip_ >> tip;
+
 
   std::cout << "rt.get_records().size() = " <<
     rt.get_records().size() << "\n";
 
 
   globals::cBB = new basicBlock(rt.get_records().begin()->pc);
-  buildCFG(rt.get_records());
+  buildCFG(rt.get_records(), counts);
 
   std::ofstream out("blocks.txt");
   std::vector<std::vector<basicBlock*>> regions;
   std::vector<basicBlock*> r;
 
+  //create region
   for(auto p : basicBlock::bbMap) {
     out << *(p.second) << "\n";
     r.push_back(p.second);
   }
   
   regions.push_back(r);
-  regionCFG *cfg = new regionCFG(tip.m);
+  regionCFG *cfg = new regionCFG(tip.m, counts);
   cfg->buildCFG(regions);
   stopCapstone();
 

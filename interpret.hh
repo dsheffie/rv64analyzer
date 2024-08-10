@@ -7,8 +7,7 @@
 #include "inst_record.hh"
 
 
-void buildCFG(const std::list<inst_record> &trace);
-
+void buildCFG(const std::list<inst_record> &trace, std::map<uint64_t,uint64_t> &counts);
 
 
 #endif
