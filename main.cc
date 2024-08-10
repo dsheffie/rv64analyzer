@@ -14,10 +14,10 @@
 
 #include "helper.hh"
 #include "disassemble.hh"
-#include "interpret.hh"
 #include "basicBlock.hh"
 #include "regionCFG.hh"
 #include "globals.hh"
+#include "inst_record.hh"
 
 extern const char* githash;
 int sArgc = -1;

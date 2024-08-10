@@ -1,5 +1,4 @@
 #include "helper.hh"
-#include "interpret.hh"
 #include "disassemble.hh"
 
 #include <cassert>
@@ -9,8 +8,6 @@
 #include <map>
 #include <string>
 #include <capstone/capstone.h>
-
-#include "disassemble.hh"
 
 static const std::array<std::string,32> regNames = {
   "zero","ra", "sp", "gp","tp", "t0", "t1", "t2",

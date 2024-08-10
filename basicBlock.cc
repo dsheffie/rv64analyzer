@@ -2,9 +2,8 @@
 #include "disassemble.hh"
 #include "helper.hh"
 #include "compile.hh"
-#include "interpret.hh"
 #include "regionCFG.hh"
-
+#include <cassert>
 #include <string>
 #include <cstdlib>
 #include <cstdio>

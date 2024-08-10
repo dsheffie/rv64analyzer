@@ -1,6 +1,7 @@
 #include <queue>
 #include <algorithm>
 #include <ostream>
+#include <cassert>
 #include <limits>
 #include <fstream>
 #include <boost/dynamic_bitset.hpp>
@@ -10,7 +11,7 @@
 #include "helper.hh"
 #include "disassemble.hh"
 #include "globals.hh"
-#include "interpret.hh"
+
 
 static regionCFG *currCFG = nullptr;
 
