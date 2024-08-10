@@ -7,6 +7,8 @@
 #include "helper.hh"
 #include "globals.hh"
 
+uint64_t ssaInsn::uuid_counter = 0;
+
 std::ostream &operator<<(std::ostream &out, const Insn &ins) {
   out << "0x" << std::hex << ins.addr << std::dec 
       << " : " << getAsmString(ins.inst, ins.addr) 
@@ -14,17 +16,24 @@ std::ostream &operator<<(std::ostream &out, const Insn &ins) {
   return out;
 }
 
+void ssaInsn::makePrettyName() {
+  std::stringstream ss;
+  ss << getGPRName(destRegister()) << "_" << uuid;
+  prettyName = ss.str(); 
+}
+
+
 void Insn::hookupRegs(MipsRegTable<ssaInsn> &tbl) {
   std::cout << "calling base implementation of hookupRegs\n";
   std::cout << *this;
 }
 
 void Insn::dumpSSA(std::ostream &out) const {
-  out << this;
+  out << getName();
   if(sources.size()) {
-    out << "<- ";
+    out << " <- ";
     for(auto src : sources) {
-      out << src << " ";
+      out << src->getName() << " ";
     }
   }
 }

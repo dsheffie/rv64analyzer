@@ -14,6 +14,7 @@
 
 static regionCFG *currCFG = nullptr;
 
+
 /* Implementation from Muchnick and Lengauer-Tarjan TOPLAS 
  * paper. Vague understanding from Appel. */
 class LengauerTarjanDominators {
@@ -549,9 +550,11 @@ bool regionCFG::dominates(cfgBasicBlock *A, cfgBasicBlock *B) const {
 
 void phiNode::hookupRegs(MipsRegTable<ssaInsn> &tbl) {}
 
+
+
 void phiNode::dumpSSA(std::ostream &out) const {
-  out << this;
-  out << "<- ";
+  out << getName();
+  out << " <- phi(";
   for(auto p : inBoundEdges) {
     auto bb = p.first;
     auto ins = p.second;
@@ -559,9 +562,9 @@ void phiNode::dumpSSA(std::ostream &out) const {
       std::hex <<
       bb->getEntryAddr() <<
       std::dec <<
-      "," << ins << ")" << " ";
+      "," << ins->getName() << ")" << " ";
   }
-
+  out << ")";
 }
 
 

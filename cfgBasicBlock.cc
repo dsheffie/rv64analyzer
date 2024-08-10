@@ -244,6 +244,7 @@ void cfgBasicBlock::traverseAndRename(regionCFG *cfg){
     if(cfg->allGprRead[i] or not(cfg->gprDefinitionBlocks[i].empty())) {
       ssaInsn *op = new ssaInsn();
       regTbl.gprTbl[i] = op;
+      op->makePrettyName();          
       ssaInsns.push_back(op);
       //regTbl.loadGPR(i);
     }
@@ -289,11 +290,14 @@ void cfgBasicBlock::traverseAndRename(regionCFG *cfg, ssaRegTables prevRegTbl) {
     auto insn = insns.at(i);
     insn->hookupRegs(regTbl);
   }
+  
   assert(ssaInsns.empty());  
   for(auto p : phiNodes) {
+    p->makePrettyName();    
     ssaInsns.push_back(p);
   }
   for(auto ins : insns) {
+    ins->makePrettyName();
     ssaInsns.push_back(ins);
   }
   

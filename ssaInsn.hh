@@ -9,22 +9,13 @@
 template <typename T>
 class MipsRegTable {
 public:
-  std::array<T*, 32> fprTbl;
   std::array<T*, 32> gprTbl;
-  std::array<T*, 2> hiloTbl;
-  std::array<T*, 5> fcrTbl;
 public:
   MipsRegTable() {
-    fprTbl.fill(nullptr);
     gprTbl.fill(nullptr);
-    hiloTbl.fill(nullptr);
-    fcrTbl.fill(nullptr);
   }
   MipsRegTable(const MipsRegTable &other) :
-    fprTbl(other.fprTbl),
-    gprTbl(other.gprTbl),
-    hiloTbl(other.hiloTbl),
-    fcrTbl(other.fcrTbl) {}
+    gprTbl(other.gprTbl) {}
 };
 
 enum class insnDefType {no_dest,fpr,gpr,hilo,fcr,icnt,unknown};
@@ -32,12 +23,20 @@ enum class insnDefType {no_dest,fpr,gpr,hilo,fcr,icnt,unknown};
 class ssaInsn {
 protected:
   insnDefType insnType;
+  uint64_t uuid;
   std::set<ssaInsn*> uses;
   std::vector<ssaInsn*> sources;
+  std::string prettyName;
+  static uint64_t uuid_counter;
 public:
   ssaInsn(insnDefType insnType = insnDefType::unknown) :
-    insnType(insnType) {}
+    insnType(insnType), uuid(uuid_counter++) {}
+  
   virtual ~ssaInsn() {}
+  const std::string &getName() const {
+    return prettyName;
+  }
+  void makePrettyName();
   void addUse(ssaInsn *u) {
     uses.insert(u);
   }
