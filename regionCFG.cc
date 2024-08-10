@@ -420,33 +420,6 @@ void llvmRegTables::storeFCR(uint32_t fcr) {
   myIRBuilder->CreateStore(fcrTbl[fcr], gep);
 }
 
-void gprPhiNode::makeLLVMPhi(regionCFG *cfg, llvmRegTables& regTbl) {
-  llvm::Type *iType32 = llvm::Type::getInt32Ty(*(cfg->Context));
-  std::string phiName = getGPRName(gprId) + "_" + std::to_string(cfg->getuuid()++);
-  regTbl.gprTbl[gprId] = lPhi = cfg->myIRBuilder->CreatePHI(iType32,0,phiName);
-}
-
-void fprPhiNode::makeLLVMPhi(regionCFG *cfg, llvmRegTables& regTbl) {
-  llvm::Type *myType = nullptr;
-  if(cfg->allFprTouched[fprId]==fprUseEnum::singlePrec) {
-    myType = llvm::Type::getFloatTy(*(cfg->Context));
-  }
-  else if(cfg->allFprTouched[fprId]==fprUseEnum::doublePrec) {
-    myType = llvm::Type::getDoubleTy(*(cfg->Context));
-  }
-  else if(cfg->allFprTouched[fprId]==fprUseEnum::both) {
-    myType = llvm::Type::getFloatTy(*(cfg->Context));
-  }
-  std::string phiName = "$" + std::to_string(fprId) + "_" + std::to_string(cfg->getuuid()++);
-  lPhi = cfg->myIRBuilder->CreatePHI(myType,0,phiName);
-  regTbl.setFPR(fprId,lPhi);
-
-}
-void fcrPhiNode::makeLLVMPhi(regionCFG *cfg, llvmRegTables& regTbl) {
-  llvm::Type *iType32 = llvm::Type::getInt32Ty(*(cfg->Context));
-  std::string fcrName =  "fcr_" + std::to_string(fcrId) + "_" + std::to_string(cfg->getuuid()++);
-  regTbl.fcrTbl[fcrId] = lPhi = cfg->myIRBuilder->CreatePHI(iType32,0,fcrName); 
-}
 
 
 void regionCFG::getRegDefBlocks() {
@@ -700,7 +673,7 @@ bool regionCFG::analyzeGraph() {
   
   //initLLVMAndGeneratePreamble();
   entryBlock->traverseAndRename(this);
-  //entryBlock->patchUpPhiNodes(this);
+  entryBlock->patchUpPhiNodes(this);
 
  
   dumpIR();
@@ -951,68 +924,25 @@ bool regionCFG::dominates(cfgBasicBlock *A, cfgBasicBlock *B) const {
 }
 
 
-void phiNode::hookupRegs(MipsRegTable<ssaInsn> &tbl) {
-  
-}
+void phiNode::hookupRegs(MipsRegTable<ssaInsn> &tbl) {}
 
-bool phiNode::parentInLLVM(cfgBasicBlock *b) {
-  llvm::BasicBlock *BB = lPhi->getParent();
-  for (llvm::pred_iterator PI = llvm::pred_begin(BB), 
-	 E = llvm::pred_end(BB); PI != E; ++PI) {
-    llvm::BasicBlock *Pred = *PI;
-    if(b->lBB == Pred) {
-      return true;
-    }
-  }
-  return false;
-}
 
-llvm::BasicBlock *phiNode::getLLVMParentBlock(cfgBasicBlock *b) {
-  llvm::BasicBlock *BB = lPhi->getParent();
-  llvm::BasicBlock *lbb = b->lBB;
-  if(!parentInLLVM(b) && b->has_jr_jalr() ) {
-    lbb = b->jrMap[BB];
-  }
-  return lbb;
-}
 
 void gprPhiNode::addIncomingEdge(regionCFG *cfg, cfgBasicBlock *b) {
-  if(!b) {
-    printf("NO BLOCK\n");
-    exit(-1);
-  }
-  llvm::Value *v = b->termRegTbl.gprTbl[gprId];
-  if(!v) {
-    std::string bname = b->bb ? toStringHex(b->bb->getEntryAddr()) : "ENTRY";
-    printf("missing value for %s from %s!!!\n", 
-	   getGPRName(gprId).c_str(), bname.c_str());
-    cfg->asDot();
-    die();
-  }
-  lPhi->addIncoming(v,getLLVMParentBlock(b));
+  assert(b!=nullptr);
+  
+  ssaInsn *in = b->ssaRegTbl.gprTbl[gprId];
+  assert(in);
+
+  inBoundEdges.emplace_back(b, in);
+  //lPhi->addIncoming(v,getLLVMParentBlock(b));
 }
 
 void fprPhiNode::addIncomingEdge(regionCFG *cfg, cfgBasicBlock *b) {
-  dbt_assert(b); 
-
-  llvm::Value *v = nullptr;
-  if(cfg->allFprTouched[fprId] == fprUseEnum::both) {
-    v = b->termRegTbl.getFPR(fprId, fprUseEnum::singlePrec);
-  }
-  else {
-    v = b->termRegTbl.getFPR(fprId, cfg->allFprTouched[fprId]);
-  }
-  ///llvm::errs() << "adding edge for fpr : " << fprId
-  //<< "  : " << *v << "\n";
-
-  dbt_assert(v);
-  lPhi->addIncoming(v,getLLVMParentBlock(b));
+  die();
 }
 void fcrPhiNode::addIncomingEdge(regionCFG *cfg, cfgBasicBlock *b) {
-  dbt_assert(b); 
-  llvm::Value *v = b->termRegTbl.fcrTbl[fcrId];
-  dbt_assert(v);
-  lPhi->addIncoming(v,getLLVMParentBlock(b));
+  die();
 }
 
 
@@ -1119,99 +1049,13 @@ llvm::BasicBlock* regionCFG::generateAbortBasicBlock(llvm::Value *abortpc,
 						    llvmRegTables& regTbl,
 						    cfgBasicBlock *cBB,
 						    llvm::BasicBlock *lBB) {
-  std::string abortName = "ABORT_" + std::to_string(uuid++);
-
-  if(lBB)
-    return lBB;
-
-  llvm::BasicBlock *saveBB = myIRBuilder->GetInsertBlock();
-  llvm::BasicBlock *abortBB = llvm::BasicBlock::Create(*Context,abortName,
-						       blockFunction);
- 
-  myIRBuilder->SetInsertPoint(abortBB);
-
-  //flush PC
-  llvm::Value *offs = llvm::ConstantInt::get(llvm::Type::getInt32Ty(*Context),0);
-  llvm::Value *gep = myIRBuilder->MakeGEP(blockArgMap["pc"], offs);
-  llvm::Value *vPtr = myIRBuilder->CreateBitCast(gep, llvm::Type::getInt32PtrTy(*Context));
-  myIRBuilder->CreateStore(abortpc,vPtr);
-
-  std::stringstream ss;
-  ss << "abort_from_" << std::hex << cBB->bb->getEntryAddr() << std::dec;
-  llvm::Value *vNPC = llvm::ConstantInt::get(llvm::Type::getInt64Ty(*Context),(uint64_t)(cBB->bb));
-  gep = myIRBuilder->MakeGEP(blockArgMap["abortloc"], offs);
-  vPtr = myIRBuilder->CreateBitCast(gep, llvm::Type::getInt64PtrTy(*Context));
-  myIRBuilder->CreateStore(vNPC,vPtr);
-
-  llvm::Value *vAPC = llvm::ConstantInt::get(llvm::Type::getInt32Ty(*Context), cBB->getEntryAddr());
-  gep = myIRBuilder->MakeGEP(blockArgMap["abortpc"], offs);
-  vPtr = myIRBuilder->CreateBitCast(gep, llvm::Type::getInt32PtrTy(*Context));
-  myIRBuilder->CreateStore(vAPC,vPtr);
-  
-
-  /* we can't statically determine the next basic block */
-  llvm::Value *vNBB = llvm::ConstantInt::get(llvm::Type::getInt64Ty(*Context),(uint64_t)nullptr);
-  gep = myIRBuilder->MakeGEP(blockArgMap["nextbb"], offs);
-  vPtr = myIRBuilder->CreateBitCast(gep, llvm::Type::getInt64PtrTy(*Context));
-  myIRBuilder->CreateStore(vNBB,vPtr);
-
-
-
-  for(size_t i = 0; i < 32; i++) {
-    if(!gprDefinitionBlocks[i].empty())
-      regTbl.storeGPR(i);
-  }
-  
-
-  for(size_t i = 0; i < 32; i++) {
-    if(!fprDefinitionBlocks[i].empty())
-      regTbl.storeFPR(i);
-  }
-  
-  for(size_t i = 0; i < 5; i++) {
-    if(!fcrDefinitionBlocks[i].empty())
-      regTbl.storeFCR(i);
-  }
-
-  if(globals::countInsns) {
-    regTbl.storeIcnt();
-  }
-  
-  myIRBuilder->CreateRetVoid();  
-  myIRBuilder->SetInsertPoint(saveBB);
-  return abortBB;
+  return nullptr;
 }
 
-
-
-
-
-
-
-void regionCFG::generateMachineCode( llvm::CodeGenOpt::Level optLevel){
-  std::string errStr;
-  myEngineBuilder = new llvm::EngineBuilder(std::unique_ptr<llvm::Module>(myModule));
-  myEngineBuilder->setOptLevel(optLevel);
-  myEngineBuilder->setErrorStr(&errStr);
-#ifdef __amd64_
-  myEngineBuilder->setMCPU("corei7");
-#endif
-  myExecEngine = myEngineBuilder->create();
-
-#ifdef USE_VTUNE
-  llvm::JITEventListener *vtuneProfiler = 
-    llvm::JITEventListener::createIntelJITEventListener();
-  myExecEngine->RegisterJITEventListener(vtuneProfiler);
-#endif
-  myExecEngine->finalizeObject();
-  codeBits = (compiledCFG)myExecEngine->getPointerToFunction(blockFunction);
-  std::string headname = "cfg_";
-  if(perfectNest) {
-    headname += "perfectNest_";
-  }
-  headname += toStringHex(cfgHead->getEntryAddr());
-  pmap->addEntry((uint64_t)codeBits, 1<<12, headname);
+void regionCFG::print() {
+  std::cerr << *this << std::endl;
 }
+
 
 std::ostream &operator<<(std::ostream &out, const regionCFG &cfg) {
   std::vector<cfgBasicBlock*> topo;
@@ -1219,16 +1063,16 @@ std::ostream &operator<<(std::ostream &out, const regionCFG &cfg) {
   for(size_t i = 0, n = topo.size(); i < n; i++) {
     const cfgBasicBlock *bb = topo.at(i);
     out << "block 0x" << std::hex << bb->getEntryAddr()
-	<< std::dec << " : ";
+       << std::dec << " : ";
     for(const cfgBasicBlock *nbb : bb->getSuccs()) {
       out << std::hex << nbb->getEntryAddr()
-	  << std::dec << " ";
+         << std::dec << " ";
     }
     out << "\n";
     const auto &c = bb->rawInsns;
     for(size_t j = 0, nb = c.size(); j < nb; j++) {
-      uint32_t inst = c.at(j).inst;
-      uint32_t addr = c.at(j).pc;
+      auto inst = c.at(j).inst;
+      auto addr = c.at(j).pc;
       out << "\t" << std::hex << addr << std::dec << " : ";      
       disassemble(out,inst,addr);
       out << "\n";
@@ -1237,455 +1081,7 @@ std::ostream &operator<<(std::ostream &out, const regionCFG &cfg) {
   return out;
 }
 
-void regionCFG::print() {
-  std::cerr << *this << std::endl;
-}
 
-
-
-
-#if 0
-static inline void stepRiscv(state_t *s) {
-  uint8_t *mem = s->mem;
-
-  uint32_t inst = *reinterpret_cast<uint32_t*>(mem + s->pc);
-  uint32_t opcode = inst & 127;
-  
-#if 0
-  std::cout << std::hex << s->pc << "\n";
-  for(int r = 0; r < 32; r++) {
-    std::cout << "\t" << s->gpr[r] << "\n";
-  }
-  std::cout << std::dec;
-#endif				    
-  
-  
-  uint64_t tohost = *reinterpret_cast<uint64_t*>(mem + globals::tohost_addr);
-  tohost &= ((1UL<<32)-1);
-  if(tohost) {
-    handle_syscall(s, tohost);
-  }
-
-
-  if(globals::log) {
-    std::cout << std::hex << s->pc << std::dec
-	      << " : " << getAsmString(inst, s->pc)
-	      << " , opcode " << std::hex
-	      << opcode
-	      << std::dec
-	      << " , icnt " << s->icnt
-	      << "\n";
-  }
-  s->last_pc = s->pc;  
-
-  uint32_t rd = (inst>>7) & 31;
-  riscv_t m(inst);
-
-#if OLD_GPR
-  int32_t old_gpr[32];
-  memcpy(old_gpr, s->gpr, 4*32);
-#endif
-  
-  switch(opcode)
-    {
-    case 0x3: {
-      if(m.l.rd != 0) {
-	int32_t disp = m.l.imm11_0;
-	if((inst>>31)&1) {
-	  disp |= 0xfffff000;
-	}
-	uint32_t ea = disp + s->gpr[m.l.rs1];
-	switch(m.s.sel)
-	  {
-	  case 0x0: /* lb */
-	    s->gpr[m.l.rd] = static_cast<int32_t>(*(reinterpret_cast<int8_t*>(s->mem + ea)));	 
-	    break;
-	  case 0x1: /* lh */
-	    s->gpr[m.l.rd] = static_cast<int32_t>(*(reinterpret_cast<int16_t*>(s->mem + ea)));	 
-	    break;
-	  case 0x2: /* lw */
-	    s->gpr[m.l.rd] = *(reinterpret_cast<int32_t*>(s->mem + ea));
-	    break;
-	  case 0x4: {/* lbu */
-	    uint32_t b = s->mem[ea];
-	    *reinterpret_cast<uint32_t*>(&s->gpr[m.l.rd]) = b;
-	    break;
-	  }
-	  case 0x5: { /* lhu */
-	    uint16_t b = *reinterpret_cast<uint16_t*>(s->mem + ea);
-	    *reinterpret_cast<uint32_t*>(&s->gpr[m.l.rd]) = b;
-	    break;
-	  }
-	  default:
-	    assert(0);
-	  }
-	s->pc += 4;
-	break;
-      }
-    }
-    case 0xf: { /* fence - there's a bunch of 'em */
-      s->pc += 4;
-      break;
-    }
-#if 0
-    imm[11:0] rs1 000 rd 0010011 ADDI
-    imm[11:0] rs1 010 rd 0010011 SLTI
-    imm[11:0] rs1 011 rd 0010011 SLTIU
-    imm[11:0] rs1 100 rd 0010011 XORI
-    imm[11:0] rs1 110 rd 0010011 ORI
-    imm[11:0] rs1 111 rd 0010011 ANDI
-    0000000 shamt rs1 001 rd 0010011 SLLI
-    0000000 shamt rs1 101 rd 0010011 SRLI
-    0100000 shamt rs1 101 rd 0010011 SRAI
-#endif
-    case 0x13: {
-      int32_t simm32 = (inst >> 20);
-
-      simm32 |= ((inst>>31)&1) ? 0xfffff000 : 0x0;
-      uint32_t subop =(inst>>12)&7;
-      uint32_t shamt = (inst>>20) & 31;
-
-      if(rd != 0) {
-	switch(m.i.sel)
-	  {
-	  case 0: /* addi */
-	    s->gpr[rd] = s->gpr[m.i.rs1] + simm32;
-	    break;
-	  case 1: /* slli */
-	    s->gpr[rd] = (*reinterpret_cast<uint32_t*>(&s->gpr[m.i.rs1])) << shamt;
-	    break;
-	  case 2: /* slti */
-	    s->gpr[rd] = (s->gpr[m.i.rs1] < simm32);
-	    break;
-	  case 3: { /* sltiu */
-	    uint32_t uimm32 = static_cast<uint32_t>(simm32);
-	    uint32_t u_rs1 = *reinterpret_cast<uint32_t*>(&s->gpr[m.i.rs1]);
-	    s->gpr[rd] = (u_rs1 < uimm32);
-	    break;
-	  }
-	  case 4: /* xori */
-	    s->gpr[rd] = s->gpr[m.i.rs1] ^ simm32;
-	    break;
-	  case 5: { /* srli & srai */
-	    uint32_t sel =  (inst >> 25) & 127;	    
-	    if(sel == 0) { /* srli */
-	      s->gpr[rd] = (*reinterpret_cast<uint32_t*>(&s->gpr[m.i.rs1]) >> shamt);
-	    }
-	    else if(sel == 32) { /* srai */
-	      s->gpr[rd] = s->gpr[m.i.rs1] >> shamt;
-	    }
-	    else {
-	      std::cout << "sel = " << sel << "\n";
-	      assert(0);
-	    }
-	    break;
-	  }
-	  case 6: /* ori */
-	    s->gpr[rd] = s->gpr[m.i.rs1] | simm32;
-	    break;
-	  case 7: /* andi */
-	    s->gpr[rd] = s->gpr[m.i.rs1] & simm32;
-	    break;
-	    
-	  default:
-	    std::cout << "implement case " << subop << "\n";
-	    assert(false);
-	  }
-      }
-      s->pc += 4;
-      break;
-    }
-    case 0x23: {
-      int32_t disp = m.s.imm4_0 | (m.s.imm11_5 << 5);
-      disp |= ((inst>>31)&1) ? 0xfffff000 : 0x0;
-      uint32_t ea = disp + s->gpr[m.s.rs1];
-      //std::cout << "STORE EA " << std::hex << ea << std::dec << "\n";      
-      switch(m.s.sel)
-	{
-	case 0x0: /* sb */
-	  s->mem[ea] = *reinterpret_cast<uint8_t*>(&s->gpr[m.s.rs2]);
-	  break;
-	case 0x1: /* sh */
-	  *(reinterpret_cast<uint16_t*>(s->mem + ea)) = *reinterpret_cast<uint16_t*>(&s->gpr[m.s.rs2]);
-	  break;
-	case 0x2: /* sw */
-	  *(reinterpret_cast<int32_t*>(s->mem + ea)) = s->gpr[m.s.rs2];
-	  break;
-	default:
-	  assert(0);
-	}
-      s->pc += 4;
-      break;
-    }
-      
-      //imm[31:12] rd 011 0111 LUI
-    case 0x37:
-      if(rd != 0) {
-	s->gpr[rd] = inst & 0xfffff000;
-      }
-      s->pc += 4;
-      break;
-      //imm[31:12] rd 0010111 AUIPC
-    case 0x17: /* is this sign extended */
-      if(rd != 0) {
-	uint32_t imm = inst & (~4095U);
-	uint32_t u = static_cast<uint32_t>(s->pc) + imm;
-	*reinterpret_cast<uint32_t*>(&s->gpr[rd]) = u;
-	//std::cout << "u = " << std::hex << u << std::dec << "\n";
-	//if(s->pc == 0x80000084) exit(-1);
-      }
-      s->pc += 4;
-      break;
-      
-      //imm[11:0] rs1 000 rd 1100111 JALR
-    case 0x67: {
-      int32_t tgt = m.jj.imm11_0;
-      tgt |= ((inst>>31)&1) ? 0xfffff000 : 0x0;
-      tgt += s->gpr[m.jj.rs1];
-      tgt &= ~(1U);
-      if(m.jj.rd != 0) {
-	s->gpr[m.jj.rd] = s->pc + 4;
-      }
-      s->pc = tgt;
-      break;
-    }
-
-      
-      //imm[20|10:1|11|19:12] rd 1101111 JAL
-    case 0x6f: {
-      int32_t jaddr =
-	(m.j.imm10_1 << 1)   |
-	(m.j.imm11 << 11)    |
-	(m.j.imm19_12 << 12) |
-	(m.j.imm20 << 20);
-      jaddr |= ((inst>>31)&1) ? 0xffe00000 : 0x0;
-      if(rd != 0) {
-	s->gpr[rd] = s->pc + 4;
-      }
-      s->pc += jaddr;
-      break;
-    }
-    case 0x33: {      
-      if(m.r.rd != 0) {
-	uint32_t u_rs1 = *reinterpret_cast<uint32_t*>(&s->gpr[m.r.rs1]);
-	uint32_t u_rs2 = *reinterpret_cast<uint32_t*>(&s->gpr[m.r.rs2]);
-	switch(m.r.sel)
-	  {
-	  case 0x0: /* add & sub */
-	    switch(m.r.special)
-	      {
-	      case 0x0: /* add */
-		s->gpr[m.r.rd] = s->gpr[m.r.rs1] + s->gpr[m.r.rs2];
-		break;
-	      case 0x1: /* mul */
-		s->gpr[m.r.rd] = s->gpr[m.r.rs1] * s->gpr[m.r.rs2];
-		break;
-	      case 0x20: /* sub */
-		s->gpr[m.r.rd] = s->gpr[m.r.rs1] - s->gpr[m.r.rs2];
-		break;
-	      default:
-		std::cout << "sel = " << m.r.sel << ", special = " << m.r.special << "\n";
-		assert(0);
-	      }
-	    break;
-	  case 0x1: /* sll */
-	    switch(m.r.special)
-	      {
-	      case 0x0:
-		s->gpr[m.r.rd] = s->gpr[m.r.rs1] << (s->gpr[m.r.rs2] & 31);
-		break;
-	      default:
-		std::cout << "sel = " << m.r.sel << ", special = " << m.r.special << "\n";
-		assert(0);
-	      }
-	    break;
-	  case 0x2: /* slt */
-	    switch(m.r.special)
-	      {
-	      case 0x0:
-		s->gpr[m.r.rd] = s->gpr[m.r.rs1] < s->gpr[m.r.rs2];
-		break;
-	      default:
-		std::cout << "sel = " << m.r.sel << ", special = " << m.r.special << "\n";
-		assert(0);		
-	      }
-	    break;
-	  case 0x3: /* sltu */
-	    switch(m.r.special)
-	      {
-	      case 0x0:
-		s->gpr[m.r.rd] = u_rs1 < u_rs2;
-		break;
-	      case 0x1: {/* MULHU */
-		uint64_t t = static_cast<uint64_t>(u_rs1) * static_cast<uint64_t>(u_rs2);
-		*reinterpret_cast<uint32_t*>(&s->gpr[m.r.rd]) = (t>>32);
-		break;
-	      }
-	      default:
-		std::cout << "sel = " << m.r.sel << ", special = " << m.r.special << "\n";
-		std::cout << "pc = " << std::hex << s->pc << std::dec << "\n";
-		assert(0);		
-	      }
-	    break;
-	  case 0x4:
-	    switch(m.r.special)
-	      {
-	      case 0x0:
-		s->gpr[m.r.rd] = s->gpr[m.r.rs1] ^ s->gpr[m.r.rs2];
-		break;
-	      case 0x1:
-		s->gpr[m.r.rd] = s->gpr[m.r.rs1] / s->gpr[m.r.rs2];
-		break;
-	      default:
-		std::cout << "sel = " << m.r.sel << ", special = " << m.r.special << "\n";
-		assert(0);		
-	      }
-	    break;		
-	  case 0x5: /* srl & sra */
-	    switch(m.r.special)
-	      {
-	      case 0x0: /* srl */
-		s->gpr[rd] = (*reinterpret_cast<uint32_t*>(&s->gpr[m.r.rs1]) >> (s->gpr[m.r.rs2] & 31));
-		break;
-	      case 0x1: {
-		*reinterpret_cast<uint32_t*>(&s->gpr[m.r.rd]) = u_rs1 / u_rs2;
-		break;
-	      }
-	      case 0x20: /* sra */
-		s->gpr[rd] = s->gpr[m.r.rs1] >> (s->gpr[m.r.rs2] & 31);
-		break;
-	      default:
-		std::cout << "sel = " << m.r.sel << ", special = " << m.r.special << "\n";
-		assert(0);				
-	      }
-	    break;
-	  case 0x6:
-	    switch(m.r.special)
-	      {
-	      case 0x0:
-		s->gpr[m.r.rd] = s->gpr[m.r.rs1] | s->gpr[m.r.rs2];
-		break;
-	      case 0x1:
-		s->gpr[m.r.rd] = s->gpr[m.r.rs1] % s->gpr[m.r.rs2];
-		break;		
-	      default:
-		std::cout << "sel = " << m.r.sel << ", special = " << m.r.special << "\n";
-		assert(0);
-	      }
-	    break;
-	  case 0x7:
-	    switch(m.r.special)
-	      {
-	      case 0x0:
-		s->gpr[m.r.rd] = s->gpr[m.r.rs1] & s->gpr[m.r.rs2];
-		break;
-	      case 0x1: { /* remu */
-		*reinterpret_cast<uint32_t*>(&s->gpr[m.r.rd]) = u_rs1 % u_rs2;
-		break;
-	      }
-	      default:
-		std::cout << "sel = " << m.r.sel << ", special = " << m.r.special << "\n";
-		assert(0);
-	      }
-	    break;
-	  default:
-	    std::cout << "implement = " << m.r.sel << "\n";
-	    assert(0);
-	  }
-      }
-      s->pc += 4;
-      break;
-    }
-#if 0
-    imm[12|10:5] rs2 rs1 000 imm[4:1|11] 1100011 BEQ
-    imm[12|10:5] rs2 rs1 001 imm[4:1|11] 1100011 BNE
-    imm[12|10:5] rs2 rs1 100 imm[4:1|11] 1100011 BLT
-    imm[12|10:5] rs2 rs1 101 imm[4:1|11] 1100011 BGE
-    imm[12|10:5] rs2 rs1 110 imm[4:1|11] 1100011 BLTU
-    imm[12|10:5] rs2 rs1 111 imm[4:1|11] 1100011 BGEU
-#endif
-    case 0x63: {
-      int32_t disp =
-	(m.b.imm4_1 << 1)  |
-	(m.b.imm10_5 << 5) |	
-        (m.b.imm11 << 11)  |
-        (m.b.imm12 << 12);
-      disp |= m.b.imm12 ? 0xffffe000 : 0x0;
-      bool takeBranch = false;
-      uint32_t u_rs1 = *reinterpret_cast<uint32_t*>(&s->gpr[m.b.rs1]);
-      uint32_t u_rs2 = *reinterpret_cast<uint32_t*>(&s->gpr[m.b.rs2]);
-      switch(m.b.sel)
-	{
-	case 0: /* beq */
-	  takeBranch = s->gpr[m.b.rs1] == s->gpr[m.b.rs2];
-	  break;
-	case 1: /* bne */
-	  takeBranch = s->gpr[m.b.rs1] != s->gpr[m.b.rs2];
-	  break;
-	case 4: /* blt */
-	  takeBranch = s->gpr[m.b.rs1] < s->gpr[m.b.rs2];
-	  break;
-	case 5: /* bge */
-	  takeBranch = s->gpr[m.b.rs1] >= s->gpr[m.b.rs2];	  
-	  break;
-	case 6: /* bltu */
-	  takeBranch = u_rs1 < u_rs2;
-	  break;
-	case 7: /* bgeu */
-	  takeBranch = u_rs1 >= u_rs2;
-	  //std::cout << "s->pc " << std::hex << s->pc << ", rs1 " << u_rs1 << ", rs2 "
-	  //<< u_rs2 << std::dec
-	  //	    << ", takeBranch " << takeBranch
-	  //<< "\n";
-
-	  break;
-	default:
-	  std::cout << "implement case " << m.b.sel << "\n";
-	  assert(0);
-	}
-      //assert(not(takeBranch));
-      s->pc = takeBranch ? disp + s->pc : s->pc + 4;
-      break;
-    }
-
-    case 0x73:
-      if((inst >> 7) == 0) {
-	s->brk = 1;
-      }
-      else {
-	s->pc += 4;
-      }
-      break;
-    
-    default:
-      std::cout << std::hex << s->pc << std::dec
-		<< " : " << getAsmString(inst, s->pc)
-		<< " , opcode " << std::hex
-		<< opcode
-		<< std::dec
-		<< " , icnt " << s->icnt
-		<< "\n";
-      std::cout << *s << "\n";
-      exit(-1);
-      break;
-    }
-
-  s->icnt++;
-#if OLD_GPR
-  for(int i = 0; i < 32; i++){
-    if(old_gpr[i] != s->gpr[i]) {
-      std::cout << "\t" << getGPRName(i) << " changed from "
-		<< std::hex
-		<< old_gpr[i]
-		<< " to "
-		<< s->gpr[i]
-		<< std::dec
-		<< "\n";
-    }
-  }
-#endif
-}
-#endif
 
 basicBlock* regionCFG::run(state_t *ss) { return nullptr; }
 
@@ -1696,18 +1092,6 @@ void regionCFG::dumpIR() {
    o.close();
  }
  
-void regionCFG::dumpLLVM() {
-  std::string bitname= "cfg_" + toStringHex(cfgHead->getEntryAddr()) + ".bc"; 
-  int fd = open(bitname.c_str(), O_RDWR|O_CREAT, (S_IRUSR | S_IWUSR) );
-  llvm::raw_fd_ostream bcOut(fd, false, false);
-  llvm::WriteBitcodeToFile(*myModule, bcOut);
-  bcOut.close();
-  close(fd);
-}
-
-
-void regionCFG::runLLVMLoopAnalysis() {}
-
 
 void regionCFG::findLoop(std::set<cfgBasicBlock*> &loop, 
 			std::list<cfgBasicBlock*> &stack,
@@ -1841,37 +1225,6 @@ void regionCFG::findNaturalLoops() {
   //head->getEntryAddr(), perfectNest ? "is" : "isnt" );
     
   loopNesting = loopN;
-}
-
-void regionCFG::report(std::string &s, uint64_t icnt) {
-  double frac = ((double)inscnt / (double)icnt)*100.0;
-  std::stringstream ss;
-  ss << "compilation region @ 0x" << std::hex << head->getEntryAddr() << std::dec
-     << "(inscnt=" << inscnt
-     << ",head prob=" << headProb
-     << ",min icnt=" << minIcnt
-     << ",max icnt=" << maxIcnt
-     << ",avg insns=" << (static_cast<double>(inscnt) / runs)
-     << ",nextpcs = " << nextPCs.size()
-     << ",static icnt = " << countInsns()
-     << ",compile time = " << compileTime
-     << ",frac=" << frac << ")\n";
-  s += ss.str();
-#if 1
-  if(frac > 0.10) {
-    dumpIR();
-    dumpLLVM();
-    asDot();
-  }
-#endif
-  for(const auto & blk : cfgBlocks) {
-    uint32_t x = blk->getEntryAddr();
-    if(x != ~(0U)) {
-      s += toStringHex(x) + ",";
-      debugSymDB::lookup(blk->getEntryAddr(),s);
-    }
-  }
-  s += "\n\n";
 }
  
 uint64_t regionCFG::getEntryAddr() const {

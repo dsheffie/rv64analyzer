@@ -351,7 +351,6 @@ void cfgBasicBlock::traverseAndRename(regionCFG *cfg){
   
   for(size_t i = 0; i < 32; i++) {
     if(cfg->allGprRead[i] or not(cfg->gprDefinitionBlocks[i].empty())) {
-      printf("need to define register %d\n", i);
       ssaInsn *op = new ssaInsn();
       regTbl.gprTbl[i] = op;
       ssaInsns.push_back(op);

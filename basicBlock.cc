@@ -371,25 +371,6 @@ void basicBlock::info() {
 	    << "\n";
 }
 
-void basicBlock::report(std::string &s, uint64_t icnt) {
-  char buf[256];
-  double frac = ((double)inscnt / (double)icnt)*100.0;
-  bool hasFP = false, hasMonitor = false;
-  for(size_t i = 0; i < vecIns.size(); i++) {
-    hasFP |= isFloatingPoint(vecIns[i].inst);
-    hasMonitor |= is_monitor(vecIns[i].inst);
-  }
-  sprintf(buf,"uncompiled basicblock(monitor=%d,fp=%d) @ 0x%x (inscnt=%zu, %g%%)\n", 
-	  (int)hasMonitor, (int)hasFP, getEntryAddr(), (size_t)inscnt, frac);
-  s += std::string(buf);
-  debugSymDB::lookup(getEntryAddr(),s);
-  sprintf(buf,"\n");
-  std::stringstream ss;
-  ss << *this;
-  s += ss.str();
-  s += "\n\n";
-  s += std::string(buf);
-}
 
 
 bool basicBlock::validPath(std::vector<basicBlock*> &rpath) {

@@ -63,7 +63,6 @@ private:
 public:
   static void dropAllBBs();
   static void dumpCFG();
-  void report(std::string &s, uint64_t icnt) override;
   void info() override;
   static bool validPath(std::vector<basicBlock*> &rpath);
   void addRegion(const std::vector<basicBlock*> &region);

@@ -66,6 +66,108 @@ public:
   void hookupRegs(MipsRegTable<ssaInsn> &tbl) override {}
 };
 
+class sretInsn : public Insn {
+public:
+  sretInsn(uint32_t inst, uint64_t addr) : Insn(inst, addr) {}
+  void recDefines(cfgBasicBlock *cBB, regionCFG *cfg) override {}
+  void recUses(cfgBasicBlock *cBB) override {}
+  void hookupRegs(MipsRegTable<ssaInsn> &tbl) override {}
+};
+
+class sfenceInsn : public Insn {
+public:
+  sfenceInsn(uint32_t inst, uint64_t addr) : Insn(inst, addr) {}
+  void recDefines(cfgBasicBlock *cBB, regionCFG *cfg) override {}
+  void recUses(cfgBasicBlock *cBB) override {}
+  void hookupRegs(MipsRegTable<ssaInsn> &tbl) override {}
+};
+
+class csrInsn : public Insn {
+protected:
+  int rd, rs, csrid;
+public:
+  csrInsn(uint32_t inst, uint64_t addr) :
+    Insn(inst, addr),
+    rd((inst>>7) & 31),
+    rs((inst >> 15) & 31),
+    csrid((inst>>20)) {}
+  void recDefines(cfgBasicBlock *cBB, regionCFG *cfg) override {
+    if(rd != 0) {
+      cfg->gprDefinitionBlocks[rd].insert(cBB);
+    }
+  }
+};
+
+class csriInsn : public Insn {
+protected:
+  int rd, rs, csrid;
+public:
+  csriInsn(uint32_t inst, uint64_t addr) :
+    Insn(inst, addr),
+    rd((inst>>7) & 31),
+    rs((inst >> 15) & 31),
+    csrid((inst>>20)) {}
+  void recDefines(cfgBasicBlock *cBB, regionCFG *cfg) override {
+    if(rd != 0) {
+      cfg->gprDefinitionBlocks[rd].insert(cBB);
+    }
+  }
+  void hookupRegs(MipsRegTable<ssaInsn> &tbl) override {
+    if(rd != 0) {
+      tbl.gprTbl[rd] = this;
+    }
+  }    
+};
+
+class csrrwInsn : public csrInsn {
+public:
+  csrrwInsn(uint32_t inst, uint64_t addr) : csrInsn(inst, addr) {}
+  void recUses(cfgBasicBlock *cBB) override {
+    cBB->gprRead[rs]=true;
+  }
+  void hookupRegs(MipsRegTable<ssaInsn> &tbl) override {
+    addSrc(tbl.gprTbl[rs]);
+    if(rd != 0) {
+      tbl.gprTbl[rd] = this;
+    }
+  }  
+};
+
+class csrrsInsn : public csrInsn {
+public:
+  csrrsInsn(uint32_t inst, uint64_t addr) : csrInsn(inst, addr) {}
+  void recUses(cfgBasicBlock *cBB) override {
+    if(rs != 0) {
+      cBB->gprRead[rs]=true;
+    }
+  }
+  void hookupRegs(MipsRegTable<ssaInsn> &tbl) override {
+    if(rs != 0) {
+      addSrc(tbl.gprTbl[rs]);
+    }
+    if(rd != 0) {
+      tbl.gprTbl[rd] = this;
+    }
+  }  
+};
+
+class csrrcInsn : public csrInsn {
+public:
+  csrrcInsn(uint32_t inst, uint64_t addr) : csrInsn(inst, addr) {}
+  void recUses(cfgBasicBlock *cBB) override {
+    if(rs != 0) {
+      cBB->gprRead[rs]=true;
+    }
+  }
+  void hookupRegs(MipsRegTable<ssaInsn> &tbl) override {
+    if(rs != 0) {
+      addSrc(tbl.gprTbl[rs]);
+    }
+    if(rd != 0) {
+      tbl.gprTbl[rd] = this;
+    }
+  }  
+};
 
 
 class storeInsn : public Insn {
@@ -387,8 +489,60 @@ Insn* getInsn(uint32_t inst, uint64_t addr){
 	}
       break;
     case 0x73: {
-
-
+      uint32_t csr_id = (inst>>20);
+      bool is_ecall = ((inst >> 7) == 0);
+      bool is_ebreak = ((inst>>7) == 0x2000);
+      bool bits19to7z = (((inst >> 7) & 8191) == 0);
+      uint64_t upper7 = (inst>>25);
+      if(is_ecall) {
+	die();
+      }
+      else if(upper7 == 9 && ((inst & (16384-1)) == 0x73 )) {
+	return new sfenceInsn(inst, addr);
+      }
+      else if(bits19to7z and (csr_id == 0x105)) {
+	/* wfi */
+      }
+      else if(bits19to7z and (csr_id == 0x002)) {  /* uret */
+	assert(false);
+      }
+      else if(bits19to7z and (csr_id == 0x102)) {  /* sret */
+	return new sretInsn(inst, addr);
+      }
+      else if(bits19to7z and (csr_id == 0x202)) {  /* hret */
+	die();
+      }            
+      else if(bits19to7z and (csr_id == 0x302)) {  /* mret */
+	die();
+      }
+      else if(is_ebreak) {
+	die();
+      }
+      else {
+	switch((inst>>12) & 7)
+	  {	    
+	  case 1: { /* CSRRW */
+	    return new csrrwInsn(inst, addr);
+	  }
+	  case 2: {/* CSRRS */
+	    return new csrrsInsn(inst, addr);
+	  }
+	  case 3: {/* CSRRC */
+	    return new csrrcInsn(inst, addr);
+	  }
+	  case 5: {/* CSRRWI */
+	    return new csriInsn(inst, addr);
+	  }
+	  case 6:{ /* CSRRSI */
+	    return new csriInsn(inst, addr);
+	  }
+	  case 7: {/* CSRRCI */
+	    return new csriInsn(inst, addr);	    
+	  }
+	  default:
+	    die();
+	  }
+      }
     }
     default:
       std::cout << "what is opcode " << std::hex << opcode << std::dec << "\n";

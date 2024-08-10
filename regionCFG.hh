@@ -59,16 +59,11 @@ typedef void (*compiledCFG)
 
 class phiNode : public ssaInsn {
  protected:
-  llvm::PHINode *lPhi;
-  std::set<cfgBasicBlock*> inBoundEdges;
+  std::vector<std::pair<cfgBasicBlock*, ssaInsn*>> inBoundEdges;
  public:
   phiNode(insnDefType insnType = insnDefType::unknown) :
-    ssaInsn(insnType), lPhi(nullptr){}
+    ssaInsn(insnType) {}
   virtual ~phiNode() {}
-  llvm::PHINode *get() const { return lPhi; }
-  virtual void makeLLVMPhi(regionCFG *cfg,llvmRegTables& regTbl) {}
-  bool parentInLLVM(cfgBasicBlock *b);
-  llvm::BasicBlock *getLLVMParentBlock(cfgBasicBlock *b);
   virtual void print() const = 0;
   virtual void addIncomingEdge(regionCFG *cfg, cfgBasicBlock *b)  = 0;
   virtual void hookupRegs(MipsRegTable<ssaInsn> &tbl) override;
@@ -82,7 +77,6 @@ class gprPhiNode : public phiNode {
   uint32_t destRegister() const override {
     return gprId;
   }
-  void makeLLVMPhi(regionCFG *cfg, llvmRegTables& regTbl) override;
   void addIncomingEdge(regionCFG *cfg, cfgBasicBlock *b) override;
   void print() const override {
     printf("phi for gpr %u\n", gprId);
@@ -105,7 +99,6 @@ class fprPhiNode : public phiNode {
   fprUseEnum getUseType() const {
     return useType;
   }
-  void makeLLVMPhi(regionCFG *cfg, llvmRegTables& regTbl) override;
   void addIncomingEdge(regionCFG *cfg, cfgBasicBlock *b) override;
   bool isFloatingPoint() const override {
     return true;
@@ -123,7 +116,6 @@ class fcrPhiNode : public phiNode {
   uint32_t destRegister() const override {
     return fcrId;
   }
-  void makeLLVMPhi(regionCFG *cfg, llvmRegTables& regTbl) override;
   void addIncomingEdge(regionCFG *cfg, cfgBasicBlock *b) override;
   void print() const override {
     printf("phi for fcr %u\n", fcrId);
@@ -418,9 +410,6 @@ protected:
   bool buildCFG(std::vector<std::vector<basicBlock*> > &regions);
 
   bool analyzeGraph();
-  void generateMachineCode( llvm::CodeGenOpt::Level optLevel);
-  void runLLVMLoopAnalysis();
-  void dumpLLVM();
   void dumpIR();
   void emulate(state_t *s);
   void print();
@@ -433,7 +422,6 @@ protected:
   static void dropCompiled();
   uint64_t getEntryAddr() const override;
   basicBlock* run(state_t *s) override;
-  void report(std::string &s, uint64_t icnt) override;
   void info() override;
   void toposort(std::vector<cfgBasicBlock*> &topo) const;
   uint64_t countInsns() const;

@@ -18,7 +18,6 @@ public:
     return nullptr;
   };
   virtual void info() = 0;
-  virtual void report(std::string &s, uint64_t icnt) {}
   virtual uint64_t getEntryAddr() const = 0;
   virtual ~execUnit() {}
   uint64_t getInscnt() const {
