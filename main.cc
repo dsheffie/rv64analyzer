@@ -64,6 +64,83 @@ uint64_t regionCFG::iters = 0;
 std::map<uint64_t, basicBlock*> basicBlock::bbMap;
 std::map<uint64_t, basicBlock*> basicBlock::insMap;
 
+static void getNextBlock(uint64_t pc) {
+  basicBlock *nBB = globals::cBB->findBlock(pc);
+  if(nBB == nullptr ) {
+    nBB = new basicBlock(pc, globals::cBB);
+  }
+  globals::cBB->setReadOnly();
+  globals::cBB = nBB;
+}
+
+void execRiscv(uint32_t inst, uint64_t pc, uint64_t npc, uint64_t vpc) {
+  globals::cBB->addIns(inst, pc, vpc);
+  uint32_t opcode = inst & 127;
+  switch(opcode)
+    {
+      //imm[11:0] rs1 000 rd 1100111 JALR
+    case 0x67: {
+      globals::cBB->setTermAddr(pc);      
+      getNextBlock(npc);
+      break;
+    }
+      //imm[20|10:1|11|19:12] rd 1101111 JAL
+    case 0x6f: {
+      globals::cBB->setTermAddr(pc);      
+      getNextBlock(npc);
+      break;
+    }
+    case 0x63: { /* cond branch */
+      globals::cBB->setTermAddr(pc);
+      getNextBlock(npc);
+      break;
+    }
+    default:
+      break;
+    }
+}
+
+
+void buildCFG(const std::list<inst_record> &trace, std::map<uint64_t,uint64_t> &counts) {
+  auto nit = trace.begin(); nit++;
+  uint64_t cnt = 0;
+  for(auto it = trace.begin(), E = trace.end(); nit != E; ++it) {
+    uint64_t npc = ~0UL;
+    const inst_record & ir = *it;
+    if(nit != E) {
+      npc = nit->pc;
+    }
+    counts[ir.pc]++;
+#if 0
+    printf("%lx %s -> %lx (cbb %lx, term %lx, read only %d)\n",
+	   ir.pc,
+	   getAsmString(ir.inst, ir.pc).c_str(),
+	   npc,
+	   globals::cBB->getEntryAddr(),
+	   globals::cBB->getTermAddr(),
+	   globals::cBB->isReadOnly()
+	   );
+#endif
+    
+    if( not(globals::cBB->isReadOnly()) ) {
+      execRiscv(ir.inst, ir.pc, npc, ir.vpc);
+    }
+    else if(ir.pc == globals::cBB->getTermAddr()) {
+      auto nbb = globals::cBB->findBlock(npc);
+      if(nbb == nullptr)  {
+	nbb = new basicBlock(npc, globals::cBB);
+      }
+      globals::cBB = nbb;
+    }
+  next:
+    ++cnt;
+    ++nit;
+  }
+  std::cout << "made it to end of trace\n";
+}
+
+
+
 
 int main(int argc, char *argv[]) {
   retire_trace rt;
