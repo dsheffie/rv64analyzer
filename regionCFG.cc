@@ -137,63 +137,6 @@ public:
   }
 };
 
-template <typename T>
-bool aug_dfs(T *node,
-	     T *target,
-	     std::set<T*> &seen,
-	     std::list<T*> &visited,
-	     const std::set<T*> &init,
-	     size_t curr_len, size_t max_len) {
-  if(node == target) {
-    visited.push_back(node);
-    return true;
-  }
-  if(curr_len >= max_len) {
-    return false;
-  }
-
-  auto it = seen.find(node);
-  if(it != seen.end())
-    return false;
-  seen.insert(node);
-
-  if(node->hasJAL() /*or node->hasJR() or node->hasJALR()*/) {
-    bool viable = false;
-    for(T *nn : node->getSuccs()) {
-      if((nn == target) or (seen.find(nn) != seen.end())) {
-	viable = true;
-	break;
-      }
-    }
-    if(not(viable))
-      return false;
-  }
-  else if(node->hasJR() or node->hasJALR()) {
-    return false;
-  }
-  else if(node->hasMONITOR()) {
-    return false;
-  }
-
-  bool found_path = false;
-  size_t num_succs = node->getSuccs().size();
-  std::vector<T*> succs;
-  succs.reserve(num_succs);
-  for(T *n : node->getSuccs()) {
-    succs.push_back(n);
-  }
-  
-  std::sort(succs.begin(), succs.end(), sortByIcnt<T*>());
-  
-  for(T *n : succs) {
-    if(aug_dfs(n, target, seen, visited, init, curr_len+1, max_len)) {
-      visited.push_back(node);
-      found_path = true;
-    }
-  }
-  return found_path;
-}
-
 
 template <typename T>
 void inducePhis(const std::set<cfgBasicBlock*> &defBBs, int id) {
@@ -562,7 +505,6 @@ regionCFG::regionCFG() : execUnit() {
   runs = uuid = 0;
   minIcnt = std::numeric_limits<uint64_t>::max();
   maxIcnt = 0; 
-  codeBits = nullptr;
   headProb = 0.0;
   head = nullptr;
   cfgHead = nullptr;
@@ -779,6 +721,9 @@ bool regionCFG::dominates(cfgBasicBlock *A, cfgBasicBlock *B) const {
 
 void phiNode::hookupRegs(MipsRegTable<ssaInsn> &tbl) {}
 
+void phiNode::dump(std::ostream &out) const {
+  //out << *this;
+}
 
 
 void gprPhiNode::addIncomingEdge(regionCFG *cfg, cfgBasicBlock *b) {

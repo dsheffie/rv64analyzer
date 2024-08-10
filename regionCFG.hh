@@ -44,17 +44,6 @@ inline std::ostream &operator<<(std::ostream &out, const fprUseEnum &fprState) {
 }
 #undef __fpr_state_list
 
-typedef void (*compiledCFG)
-(
- uint32_t*, /* pc */
- int32_t*, /* gpr */
- uint8_t*, /* mem */
- uint64_t*, /* icnt */
- uint64_t*, /* abortloc */
- uint64_t*,  /* nextbb */
- uint32_t*  /* abortpc */
- );
-
 
 class phiNode : public ssaInsn {
  protected:
@@ -66,6 +55,7 @@ class phiNode : public ssaInsn {
   virtual void print() const = 0;
   virtual void addIncomingEdge(regionCFG *cfg, cfgBasicBlock *b)  = 0;
   virtual void hookupRegs(MipsRegTable<ssaInsn> &tbl) override;
+  virtual void dump(std::ostream &out) const override;
 };
 
 class gprPhiNode : public phiNode {
@@ -354,8 +344,6 @@ protected:
   std::array<uint64_t, histoLen> runHistory;
   std::set<uint64_t> nextPCs;
   std::set<basicBlock*> blocks;
-  compiledCFG codeBits;
-
  
   std::set<cfgBasicBlock*> gprDefinitionBlocks[32];
   std::set<cfgBasicBlock*> fprDefinitionBlocks[32];

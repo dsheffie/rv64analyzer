@@ -20,6 +20,10 @@ void Insn::hookupRegs(MipsRegTable<ssaInsn> &tbl) {
   std::cout << *this;
 }
 
+void Insn::dump(std::ostream &out) const {
+  out << *this;
+}
+
 
 class loadInsn : public Insn {
 public:

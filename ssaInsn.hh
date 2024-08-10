@@ -66,6 +66,7 @@ public:
   virtual void hookupRegs(MipsRegTable<ssaInsn> &tbl) {
     die();
   }
+  virtual void dump(std::ostream &out) const {}
 };
 
 
