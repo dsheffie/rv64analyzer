@@ -67,10 +67,18 @@ std::map<uint64_t, basicBlock*> basicBlock::insMap;
 
 int main(int argc, char *argv[]) {
   retire_trace rt;
+  tip_record tip;
   initCapstone();
-  std::ifstream ifs("test.dump", std::ios::binary);
-  boost::archive::binary_iarchive ia(ifs);  
-  ia >> rt;
+  {
+    std::ifstream ifs("test.dump", std::ios::binary);
+    boost::archive::binary_iarchive ia(ifs);  
+    ia >> rt;
+  }
+  {
+    std::ifstream ifs("tip.dump", std::ios::binary);
+    boost::archive::binary_iarchive ia(ifs);  
+    ia >> tip;
+  }  
 
   std::cout << "rt.get_records().size() = " <<
     rt.get_records().size() << "\n";
@@ -89,7 +97,7 @@ int main(int argc, char *argv[]) {
   }
   
   regions.push_back(r);
-  regionCFG *cfg = new regionCFG();
+  regionCFG *cfg = new regionCFG(tip.m);
   cfg->buildCFG(regions);
   stopCapstone();
 

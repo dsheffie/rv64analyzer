@@ -191,17 +191,13 @@ public:
 std::ostream &operator<<(std::ostream &out, const regionCFG &cfg);
 class regionCFG : public execUnit {
 protected:
-  /* definitions */
-  const static int histoLen = 8;
-  const static bool emitPCs = false;
+  std::map<int64_t, double> &tip;
   /* to be constructor list initialized */
   basicBlock *head = nullptr;
   cfgBasicBlock *cfgHead = nullptr;
   cfgBasicBlock *entryBlock = nullptr;
   cfgBasicBlock *innerPerfectBlock = nullptr;
   uint64_t uuid = 0,runs = 0, minIcnt = 0, maxIcnt = 0;
-  double headProb = 0.0;
-  bool isMegaRegion = false;
   bool perfectNest = false;
   bool hasBoth = false;
   bool validDominanceAcceleration = false;
@@ -218,11 +214,6 @@ protected:
   cfgBasicBlock* &getInnerPerfectBlock() {
     return innerPerfectBlock;
   }
-  bool getEmitPCs() const {
-    return emitPCs;
-  }
-
-  std::array<uint64_t, histoLen> runHistory;
   std::set<uint64_t> nextPCs;
   std::set<basicBlock*> blocks;
  
@@ -242,7 +233,7 @@ protected:
   void fastDominancePreComputation();
   void insertPhis();
   void getRegDefBlocks();
-  regionCFG();
+  regionCFG(std::map<int64_t, double> &m);
   ~regionCFG();
   bool buildCFG(std::vector<std::vector<basicBlock*> > &regions);
 

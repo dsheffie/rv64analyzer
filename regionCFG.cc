@@ -364,21 +364,18 @@ bool regionCFG::analyzeGraph() {
   return true;
 }
 
-regionCFG::regionCFG() : execUnit() {
+regionCFG::regionCFG(std::map<int64_t, double> &tip) : execUnit(), tip(tip) {
   regionCFGs.insert(this);
   perfectNest = true;
-  isMegaRegion = false;
   innerPerfectBlock = 0;
   runs = uuid = 0;
   minIcnt = std::numeric_limits<uint64_t>::max();
   maxIcnt = 0; 
-  headProb = 0.0;
   head = nullptr;
   cfgHead = nullptr;
   entryBlock = 0;
   hasBoth = false;
   validDominanceAcceleration = false;
-  runHistory.fill(0);
 }
 regionCFG::~regionCFG() {
   regionCFGs.erase(regionCFGs.find(this));
