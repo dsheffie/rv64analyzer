@@ -3,7 +3,6 @@
 #include "helper.hh"
 #include "compile.hh"
 #include "interpret.hh"
-#include "region.hh"
 #include "regionCFG.hh"
 
 #include <string>
@@ -91,7 +90,6 @@ void basicBlock::dropAllBBs() {
   bbMap.clear();
   insMap.clear();
   globals::cBB = nullptr;
-  globals::regionFinder->disableRegionCollection();
 }
 
 void basicBlock::setReadOnly() {
@@ -191,7 +189,6 @@ basicBlock *basicBlock::split(uint64_t nEntryAddr) {
 #endif
   size_t offs = (nEntryAddr-entryAddr) >> 2;
   
-  globals::regionFinder->disableRegionCollection();
   dropCompiledCode();
 
   basicBlock *nBB = new basicBlock(nEntryAddr);

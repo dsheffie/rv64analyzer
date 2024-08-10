@@ -16,7 +16,6 @@
 #include "disassemble.hh"
 #include "interpret.hh"
 #include "basicBlock.hh"
-#include "region.hh"
 #include "regionCFG.hh"
 #include "perfmap.hh"
 #include "debugSymbols.hh"
@@ -31,13 +30,11 @@ namespace globals {
   int sArgc = 0;
   char** sArgv = nullptr;
   bool isMipsEL = false;
-  llvm::CodeGenOpt::Level regionOptLevel = llvm::CodeGenOpt::Aggressive;
   bool countInsns = true;
   bool simPoints = false;
   bool replay = false;
   uint64_t simPointsSlice = 0;
   uint64_t nCfgCompiles = 0;
-  region *regionFinder = nullptr;
   basicBlock *cBB = nullptr;
   execUnit *currUnit = nullptr;
   bool enClockFuncts = false;
