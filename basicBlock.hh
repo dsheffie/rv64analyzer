@@ -47,7 +47,7 @@ private:
   uint64_t entryAddr=0,termAddr = 0;  
   std::set<basicBlock*, orderBasicBlocks> preds,succs;
   std::map<uint32_t, basicBlock *> succsMap;
-  bool isCompiled = false, hasRegion = false;
+  bool hasRegion = false;
   std::map<uint32_t, uint32_t> bbRegionCounts; 
   std::vector <std::vector<basicBlock*>>bbRegions;
   regionCFG *cfgCplr = nullptr;
@@ -64,9 +64,6 @@ public:
   static void dropAllBBs();
   static void dumpCFG();
   void info() override;
-  static bool validPath(std::vector<basicBlock*> &rpath);
-  void addRegion(const std::vector<basicBlock*> &region);
-  bool enoughRegions() const;
   basicBlock* split(uint64_t nEntryAddr);
   void setReadOnly();
   bool isReadOnly() const {
@@ -119,12 +116,6 @@ public:
   size_t getNumIns() const {
     return vecIns.size();
   }
-  bool blockCompiled() const{
-    return isCompiled;
-  }
-  bool regionCompiled() const{
-    return hasRegion;
-  }
   bool hasJR(bool isRet=false) const;
   bool hasTermDirectBranchOrJump(uint64_t &target, uint64_t &fallthru) const;
   bool fallsThru() const;
@@ -148,47 +139,5 @@ public:
   static void toposort(basicBlock *src, const std::set<basicBlock*> &valid, std::list<basicBlock*> &ordered);
 };
 
-#define FUNC_STATUS_LIST(x)			\
-  x(success)					\
-  x(no_return)					\
-  x(too_many_returns)				\
-  x(recursive_call)				\
-  x(monitor)					\
-  x(direct_call)				\
-  x(indirect_call)				\
-  x(arbitrary_jr)  
-
-
-#define FUNC_STATUS_ENTRY(x) x,
-#define FUNC_STATUS_PAIR(x) {funcComplStatus::x, #x},
-
-enum class funcComplStatus {FUNC_STATUS_LIST(FUNC_STATUS_ENTRY)};
-
-funcComplStatus findLeafNodeFunc(basicBlock* entryBB,
-				 const std::map<uint32_t, std::pair<std::string, uint32_t>> &syms,
-				 std::vector<basicBlock*> &func,
-				 int &numErrors);
-
-funcComplStatus findFuncWithInline(basicBlock* entryBB,
-				   const std::map<uint32_t, std::pair<std::string, uint32_t>> &syms,
-				   const std::set<uint32_t> & leaf_funcs,
-				   std::vector<basicBlock*> &func);
-
-
-
-inline std::ostream &operator << (std::ostream &out, funcComplStatus s) {
-  const static std::map<funcComplStatus, std::string> m = {
-    FUNC_STATUS_LIST(FUNC_STATUS_PAIR)
-  };
-  out <<  m.at(s);
-  return out;
-}
-
-
-
-
-#undef FUNC_STATUS_LIST
-#undef FUNC_STATUS_ENTRY
-#undef FUNC_COMPL_STATUS
 
 #endif

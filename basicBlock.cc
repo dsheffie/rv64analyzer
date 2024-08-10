@@ -108,7 +108,7 @@ void basicBlock::setReadOnly() {
       cfgCplr=nullptr;
       delete cfgCplr;
     }
-    hasRegion = isCompiled = false;
+    hasRegion = false;
     bbRegions.clear();
     bbRegionCounts.clear();
   }
@@ -304,7 +304,6 @@ std::ostream &operator<<(std::ostream &out, const basicBlock &bb) {
   out << "block  @" << hex << bb.entryAddr << dec 
       << "(cnt = " << bb.inscnt << "),"
       << "readOnly = " << bb.readOnly << "," 
-      << "isCompiled = " << bb.isCompiled << "," 
       << "succs = " << bb.succs.size() << ","
       << "preds = " << bb.preds.size()
       << endl;
@@ -335,28 +334,6 @@ std::ostream &operator<<(std::ostream &out, const basicBlock &bb) {
 
 
 
-bool basicBlock::enoughRegions() const {
-  for(auto tc : bbRegionCounts) {
-    if(tc.second >= globals::enoughRegions)
-      return true;
-  }
-  return false;
-}
-
-void basicBlock::addRegion(const std::vector<basicBlock*> &region) {
-  uint32_t crc = ~0U;
-  for(size_t i = 0, l = region.size(); i < l; i++) {
-    crc = update_crc(crc, reinterpret_cast<uint8_t*>(&(region[i]->entryAddr)), 4);
-  }
-  crc ^= (~0U);
-  if(bbRegionCounts.find(crc)==bbRegionCounts.end()) {
-    bbRegions.push_back(region);
-    bbRegionCounts[crc] = 1;
-  }
-  else {
-    bbRegionCounts[crc] += 1;
-  }
-}
 
 basicBlock::~basicBlock() {
   if(cfgCplr)
@@ -369,22 +346,6 @@ void basicBlock::info() {
      	    << getEntryAddr()
      	    << std::dec
 	    << "\n";
-}
-
-
-
-bool basicBlock::validPath(std::vector<basicBlock*> &rpath) {
-  for(ssize_t i = 0; i < (ssize_t)(rpath.size()-1); i++) {
-    basicBlock *bb = rpath[i];
-    if(bb->succs.find(rpath[i+1]) == bb->succs.end()) {
-      printf("this block:\n"); 
-      bb->print();
-      printf("next block:\n"); 
-      rpath[i+1]->print();
-      return false;
-    }
-  }
-  return true;
 }
 
 
@@ -411,152 +372,6 @@ void basicBlock::setCFG(regionCFG *cfg) {
   assert(cfgCplr==nullptr);
   cfgCplr = cfg;
   hasRegion = true;
-}
-
-
-funcComplStatus findLeafNodeFunc(basicBlock* entryBB,
-				 const std::map<uint32_t,std::pair<std::string, uint32_t>> &syms,
-				 std::vector<basicBlock*> &func,
-				 int &numErrors) {
-  funcComplStatus rc = funcComplStatus::success;
-  int numRet = 0;
-  std::set<basicBlock*> seen;
-  
-  std::function<void(basicBlock*)> searcher = [&](basicBlock *bb) {
-    bool hasRetInBlock = false;
-    if(seen.find(bb)!=seen.end())
-      return;
-
-    seen.insert(bb);
-
-    if(bb->hasJALR()) {
-      rc = funcComplStatus::indirect_call;
-      numErrors++;
-      return;
-    }
-    else if(bb->hasJAL()) {
-      auto s = *(bb->getSuccs().begin());
-      uint32_t spc = s->getEntryAddr();
-      basicBlock *inlineBB = basicBlock::globalFindBlock(spc);
-      if(inlineBB == entryBB) {
-	rc = funcComplStatus::recursive_call;
-      }
-      else {
-	rc = funcComplStatus::direct_call;
-      }
-      numErrors++;
-    }
-    else if(bb->hasMONITOR()) {
-      rc = funcComplStatus::monitor;
-      numErrors++;
-    }
-
-    /* check if there's a jr */
-    if(bb->hasJR(true)) {
-      numRet++;
-      hasRetInBlock = true;
-    }
-    else if(bb->hasJR(false)) {
-      rc = funcComplStatus::arbitrary_jr;
-      numErrors++;
-    }
-    
-    /* if jal or jalr, no good */
-    if(!hasRetInBlock) {
-      for(auto nbb : bb->getSuccs()) {
-	searcher(nbb);
-      }
-    }
-    func.push_back(bb);
-  };
-  searcher(entryBB);
-  std::reverse(func.begin(), func.end());
-  if(numRet==0) {
-    rc = (numRet==0) ? funcComplStatus::no_return :
-      funcComplStatus::too_many_returns;
-    numErrors++;
-  }
-  return rc;
-}
-
-
-funcComplStatus findFuncWithInline(basicBlock* entryBB,
-				   const std::map<uint32_t, std::pair<std::string, uint32_t>> &syms,
-				   const std::set<uint32_t> & leaf_funcs,
-				   std::vector<basicBlock*> &func) {
-  funcComplStatus rc = funcComplStatus::success;
-  std::set<basicBlock*> seen;
-  int numErrors = 0;
-  
-  std::function<void(basicBlock*)> searcher = [&](basicBlock *bb) {
-    bool gotJal = false;
-    if(seen.find(bb)!=seen.end())
-      return;
-
-    seen.insert(bb);
-
-    if(bb->hasJALR()) {
-      rc = funcComplStatus::indirect_call;
-      numErrors++;
-      return;
-    }
-    else if(bb->hasJAL()) {
-      auto s = *(bb->getSuccs().begin());
-      uint32_t spc = s->getEntryAddr();
-      basicBlock *inlineBB = basicBlock::globalFindBlock(spc);
-      if(inlineBB && (leaf_funcs.find(spc) != leaf_funcs.end())) {
-	auto s = findLeafNodeFunc(inlineBB,syms,func,numErrors);
-	assert(s==funcComplStatus::success);
-	gotJal = true;
-      }
-      else {
-	rc = funcComplStatus::direct_call;
-	numErrors++;
-      }
-    }
-    else if(bb->hasMONITOR()) {
-      rc = funcComplStatus::monitor;
-      numErrors++;
-      return;
-    }
-    
-    /* check if there's a jr to ra */
-    bool retInBB = false;
-    if(bb->hasJR(true)) {
-      retInBB = true;
-    }
-    else if(bb->hasJR(false)) {
-      rc = funcComplStatus::arbitrary_jr;
-      numErrors++;
-    }
-    if(!(gotJal || retInBB)) {
-      for(auto nbb : bb->getSuccs()) {
-	searcher(nbb);
-      }
-    }
-    else {
-      uint32_t jaddr = ~0U;
-      for(auto &p : bb->getVecIns())  {
-	if(is_jal(p.inst)) {
-	  jaddr = p.pc;
-	  break;
-	}
-      }
-      basicBlock *nbb = basicBlock::globalFindBlock(jaddr+8);
-      if(nbb == nullptr) {
-	std::cout << "CANT FIND LANDING PAD\n";
-	rc = funcComplStatus::arbitrary_jr;
-	return;
-      }
-	
-      searcher(nbb);
-    }
-    func.push_back(bb);
-  };
-  searcher(entryBB);
-  std::reverse(func.begin(), func.end());
-  
-  return rc;
 }
 
 void basicBlock::toposort(const std::set<basicBlock*> &valid, std::list<basicBlock*> &ordered, std::set<basicBlock*> &visited) {
