@@ -21,27 +21,6 @@ class regionCFG;
 class Insn;
 class cfgBasicBlock;
 
-#define __fpr_state_list(m) \
-  m(unused) \
-  m(singlePrec) \
-  m(doublePrec) \
-  m(both)	\
-  m(unknown)
-
-#define __fpr_state_enum(m) m,
-enum class fprUseEnum{__fpr_state_list(__fpr_state_enum)};
-#undef __fpr_state_enum
-
-inline std::ostream &operator<<(std::ostream &out, const fprUseEnum &fprState) {
-#define __fpr_state_pair(m) {fprUseEnum::m, #m},
-  std::map<fprUseEnum, std::string> fpr_state_map = {
-    __fpr_state_list(__fpr_state_pair)
-  };
-  return out << fpr_state_map.at(fprState);
-#undef __fpr_state_pair
-}
-#undef __fpr_state_list
-
 
 class phiNode : public ssaInsn {
  protected:
@@ -58,54 +37,15 @@ class phiNode : public ssaInsn {
 
 class gprPhiNode : public phiNode {
  protected:
-  uint32_t gprId;
+  int32_t gprId;
  public:
   gprPhiNode(uint32_t gprId) : phiNode(insnDefType::gpr), gprId(gprId){}
-  uint32_t destRegister() const override {
+  int32_t destRegister() const override {
     return gprId;
   }
   void addIncomingEdge(regionCFG *cfg, cfgBasicBlock *b) override;
   void print() const override {
     printf("phi for gpr %u\n", gprId);
-  }
-};
-
-class fprPhiNode : public phiNode {
- protected:
-  uint32_t fprId;
-  fprUseEnum useType;
- public:
-  fprPhiNode(uint32_t fprId, fprUseEnum useType = fprUseEnum::unknown) :
-    phiNode(insnDefType::fpr), fprId(fprId), useType(useType) {}
-  uint32_t destRegister() const override {
-    return fprId;
-  }
-  void setUseType(fprUseEnum useType) {
-    this->useType = useType;
-  }
-  fprUseEnum getUseType() const {
-    return useType;
-  }
-  void addIncomingEdge(regionCFG *cfg, cfgBasicBlock *b) override;
-  bool isFloatingPoint() const override {
-    return true;
-  }
-  void print() const override {
-    printf("phi for fpr %u\n", fprId);
-  }
-};
-
-class fcrPhiNode : public phiNode {
- protected:
-  uint32_t fcrId;
- public:
-  fcrPhiNode(uint32_t fcrId) : phiNode(insnDefType::fcr), fcrId(fcrId) {}
-  uint32_t destRegister() const override {
-    return fcrId;
-  }
-  void addIncomingEdge(regionCFG *cfg, cfgBasicBlock *b) override;
-  void print() const override {
-    printf("phi for fcr %u\n", fcrId);
   }
 };
 
@@ -116,13 +56,7 @@ public:
   ssaRegTables();
   ssaInsn *loadGPR(uint32_t gpr);
   ssaInsn *setGPR(uint32_t gpr, uint32_t x);
-  ssaInsn *loadFPR(uint32_t fpr);
-  ssaInsn *loadFCR(uint32_t fcr);
-  ssaInsn *getFPR(uint32_t fpr, fprUseEnum useType=fprUseEnum::unused);
-  void setFPR(uint32_t fpr, ssaInsn *v);
   void storeGPR(uint32_t gpr);
-  void storeFPR(uint32_t fpr);
-  void storeFCR(uint32_t fcr);
   void copy(const ssaRegTables &other);
 };
 
@@ -143,9 +77,6 @@ class cfgBasicBlock {
 
   std::vector<phiNode*> phiNodes;
   std::array<phiNode*,32> gprPhis;
-  std::array<phiNode*,32> fprPhis;
-  std::array<phiNode*,5> fcrPhis;
-  std::array<phiNode*,1> icntPhis;
 
 
   std::set<cfgBasicBlock*> preds;
@@ -157,17 +88,11 @@ class cfgBasicBlock {
 
   
   std::bitset<32> gprRead;
-  std::bitset<32> fprRead;
-  std::bitset<5> fcrRead;
-
-  std::vector<fprUseEnum> fprTouched;
   
   ssize_t dt_dfn = -1, dt_max_ancestor_dfn = -1;
 
 
   void addPhiNode(gprPhiNode *phi);
-  void addPhiNode(fprPhiNode *phi);
-  void addPhiNode(fcrPhiNode *phi);
   void addWithInCFGEdges(regionCFG *cfg);
   bool has_jr_jalr();
   bool hasFloatingPoint(uint32_t *typeCnts) const;
@@ -186,7 +111,6 @@ class cfgBasicBlock {
   void delSuccessor(cfgBasicBlock *s);
   cfgBasicBlock(basicBlock *bb);
   ~cfgBasicBlock();
-  void updateFPRTouched(uint32_t reg, fprUseEnum useType);
   const std::set<cfgBasicBlock*> &getPreds() const {
     return preds;
   }
@@ -308,15 +232,8 @@ protected:
   std::set<basicBlock*> blocks;
  
   std::set<cfgBasicBlock*> gprDefinitionBlocks[32];
-  std::set<cfgBasicBlock*> fprDefinitionBlocks[32];
-  std::set<cfgBasicBlock*> fcrDefinitionBlocks[5];
 
   std::bitset<32> allGprRead;
-  std::bitset<32> allFprRead;
-  std::bitset<5> allFcrRead;
-  std::vector<fprUseEnum> allFprTouched;
-
-
   std::vector< std::vector<naturalLoop> >loopNesting;
 
 
@@ -337,7 +254,6 @@ protected:
   bool analyzeGraph();
   void dumpIR();
   void dumpRISCV();  
-  void emulate(state_t *s);
   void print();
   void asDot() const;
   void findLoop(std::set<cfgBasicBlock*> &loop,

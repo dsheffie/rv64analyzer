@@ -35,6 +35,10 @@ public:
   virtual opPrecType getPrecType() const {
     return integerprec;
   }
+  int32_t destRegister() const override {
+    uint32_t rd = (inst>>7) & 31;
+    return (rd == 0) ? -1 : static_cast<int32_t>(rd);
+  }  
   uint64_t getAddr() const {
     return addr;
   }

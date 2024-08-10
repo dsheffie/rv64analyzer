@@ -178,9 +178,7 @@ ssaRegTables::ssaRegTables() :
 
 void ssaRegTables::copy(const ssaRegTables &other) {
   cfg = other.cfg;
-  fprTbl = other.fprTbl;
   gprTbl = other.gprTbl;
-  fcrTbl = other.fcrTbl;  
 }
 
 void regionCFG::getRegDefBlocks() {
@@ -191,47 +189,9 @@ void regionCFG::getRegDefBlocks() {
       ins->recUses(cbb);
     }
     /* Union bitvectors */
-    for(size_t i = 0; i < 32; i++)
-      allGprRead[i] = allGprRead[i] | cbb->gprRead[i];
-    for(size_t i = 0; i < 32; i++)
-      allFprRead[i] = allFprRead[i] | cbb->fprRead[i];
-    for(size_t i = 0; i < 5; i++)
-      allFcrRead[i] = allFcrRead[i] | cbb->fcrRead[i];
-
-    const uint32_t mask = ~(0x1);
     for(size_t i = 0; i < 32; i++) {
-      if(allFprTouched[i]==fprUseEnum::both || 
-	 cbb->fprTouched[i] == fprUseEnum::unused) {
-	continue;
-      }
-      else if(allFprTouched[i]==fprUseEnum::unused) {
-	allFprTouched[i] = cbb->fprTouched[i];
-      }
-      else if(allFprTouched[i] != cbb->fprTouched[i]) { 
-	//print_var(allFprTouched[i]);
-	//print_var(cbb->fprTouched[i]);
-	allFprTouched[(i&mask)+0] = fprUseEnum::both;
-	allFprTouched[(i&mask)+1] = fprUseEnum::both;
-      }
+      allGprRead[i] = allGprRead[i] | cbb->gprRead[i];
     }
-  }
-}
-
-
-void regionCFG::emulate(state_t *ss){
-  //basicBlock *c = head->findBlock(ss->pc);
-  basicBlock *c = head->localFindBlock(ss->pc);
-  dbt_assert(c->getEntryAddr() == ss->pc);
-  while(c) {
-    if(blocks.find(c) == blocks.end())
-      break;
-    c->run(ss);
-    basicBlock *nb = c->localFindBlock(ss->pc);
-    if(nb == nullptr) {
-      globals::cBB = new basicBlock(ss->pc, c);
-      break;
-    }
-    globals::cBB = c = nb;
   }
 }
 
@@ -401,36 +361,10 @@ bool regionCFG::analyzeGraph() {
   /* insert phis into basicblocks */
   insertPhis();
 
-
-  for(size_t i = 0, nr = allFprTouched.size(); i < nr; i++) {
-    fprUseEnum useType = allFprTouched.at(i);
-    for(cfgBasicBlock *cbb : cfgBlocks) {
-      if(cbb->fprPhis[i]) {
-	auto fPhi = dynamic_cast<fprPhiNode*>(cbb->fprPhis[i]);
-	assert(fPhi);
-	fPhi->setUseType(useType);
-      }
-    }
-    hasBoth |= useType == fprUseEnum::both;
-    if(useType == fprUseEnum::both and not(globals::enableBoth)) {
-      return false;
-    }
-  }
-    
   uint32_t cnt = 0;
-  bool usesFCR = false, usesFPR = false;
   for(size_t i = 0; i < 32; i++)
     cnt = allGprRead[i] ? cnt + 1 : cnt;
 
-  for(size_t i = 0; i < 32; i++) {
-    cnt = allFprRead[i] ? cnt + 1 : cnt;
-    usesFPR |= (allFprRead[i]!=0);
-  }
-  
-  for(size_t i = 0; i < 5; i++) {
-    cnt = allFcrRead[i] ? cnt + 1 : cnt;
-    usesFCR |= (allFcrRead[i]!=0);
-  }
   
   entryBlock->traverseAndRename(this);
   entryBlock->patchUpPhiNodes(this);
@@ -458,7 +392,6 @@ regionCFG::regionCFG() : execUnit() {
   hasBoth = false;
   validDominanceAcceleration = false;
   compileTime = 0.0;
-  allFprTouched.resize(32, fprUseEnum::unused);
   runHistory.fill(0);
 }
 regionCFG::~regionCFG() {
@@ -485,46 +418,10 @@ void regionCFG::insertPhis()  {
       gprDefinitionBlocks[gpr].insert(entryBlock);
     }
   }
-  
-  for(size_t fpr = 0; fpr < 32; fpr++) {
-    if(!fprDefinitionBlocks[fpr].empty())
-      fprDefinitionBlocks[fpr].insert(entryBlock);
-  }
-  for(size_t cpr = 0; cpr < 5; cpr++) {
-    if(!fcrDefinitionBlocks[cpr].empty())
-      fcrDefinitionBlocks[cpr].insert(entryBlock);
-  }
   /* handle gprs */
   for(size_t gpr = 1; gpr < 32; gpr++) {
     inducePhis<gprPhiNode>(gprDefinitionBlocks[gpr], gpr);
   }
-
-  /* handle fprs */
-  for(size_t fpr = 0; fpr < 32; fpr+=2)  {
-    if(allFprTouched[fpr] == fprUseEnum::both) {
-      std::set<cfgBasicBlock*> unionedDefs;
-      for(auto bb : fprDefinitionBlocks[fpr]) {
-	unionedDefs.insert(bb);
-      }
-      for(auto bb : fprDefinitionBlocks[fpr+1]) {
-	unionedDefs.insert(bb);
-      }
-      fprDefinitionBlocks[fpr] = unionedDefs;
-      fprDefinitionBlocks[fpr+1] = unionedDefs;
-    }
-  }
-  
-  for(size_t fpr = 0; fpr < 32; fpr++)  {
-    inducePhis<fprPhiNode>(fprDefinitionBlocks[fpr], fpr);
-  }
-
-  
-  
-  /* handle cprs */
-  for(size_t fcr = 0; fcr < 5; fcr++) {
-    inducePhis<fcrPhiNode>(fcrDefinitionBlocks[fcr], fcr);
-  }
-
 }
 
 void regionCFG::fastDominancePreComputation() {
@@ -692,13 +589,6 @@ void gprPhiNode::addIncomingEdge(regionCFG *cfg, cfgBasicBlock *b) {
   assert(in);
 
   inBoundEdges.emplace_back(b, in);
-}
-
-void fprPhiNode::addIncomingEdge(regionCFG *cfg, cfgBasicBlock *b) {
-  die();
-}
-void fcrPhiNode::addIncomingEdge(regionCFG *cfg, cfgBasicBlock *b) {
-  die();
 }
 
 

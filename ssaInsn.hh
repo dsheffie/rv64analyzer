@@ -57,8 +57,8 @@ public:
     sources.push_back(src);
     src->uses.insert(this);
   }
-  virtual uint32_t destRegister() const {
-    return 0;
+  virtual int32_t destRegister() const {
+    return -1;
   }
   virtual bool isFloatingPoint() const {
     return false;

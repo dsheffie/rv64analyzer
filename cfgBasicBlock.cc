@@ -115,25 +115,6 @@ void cfgBasicBlock::addPhiNode(gprPhiNode *phi) {
   }
 }
 
-void cfgBasicBlock::addPhiNode(fprPhiNode *phi) {
-  uint32_t r = phi->destRegister();
-  if(fprPhis[r])
-    delete phi;
-  else {
-    phiNodes.push_back(phi);
-    fprPhis[r] = phi;
-  }
-}
-void cfgBasicBlock::addPhiNode(fcrPhiNode *phi) {
-  uint32_t r = phi->destRegister();
-  if(fcrPhis[r])
-    delete phi;
-  else {
-    phiNodes.push_back(phi);
-    fcrPhis[r] = phi;
-  }
-}
-
 bool cfgBasicBlock::has_jr_jalr() {
   for(size_t i = 0; i < insns.size(); i++) {
     Insn *ins = insns[i];
@@ -202,12 +183,7 @@ cfgBasicBlock::cfgBasicBlock(basicBlock *bb) :
   hasTermBranchOrJump(false),
   idombb(nullptr) {
   
-  fprTouched.resize(32, fprUseEnum::unused);
   gprPhis.fill(nullptr);
-  fprPhis.fill(nullptr);
-  fcrPhis.fill(nullptr);
-  icntPhis.fill(nullptr);
-  
 
   if(bb) {
     ssize_t numInsns = bb->getVecIns().size();
@@ -235,62 +211,6 @@ void cfgBasicBlock::bindInsns(regionCFG *cfg) {
 }
 
 
-void cfgBasicBlock::updateFPRTouched(uint32_t reg, fprUseEnum useType) {
-  const uint32_t mask = ~1U;
-
-  //std::cerr << "reg = " << reg << " new use = " << useType 
-  //<< " old type = " << fprTouched[reg] << std::endl;
-  
-  if(useType == fprUseEnum::doublePrec) {
-    switch(fprTouched[reg])
-      {
-      case fprUseEnum::unused:
-	fprTouched[(reg & mask)+0] = fprUseEnum::doublePrec;
-	switch(fprTouched[(reg & mask)+1])
-	  {
-	  case fprUseEnum::unused:
-	    fprTouched[(reg & mask)+1] = fprUseEnum::doublePrec;
-	    break;
-	  case fprUseEnum::singlePrec:
-	    fprTouched[(reg & mask)+0] = fprUseEnum::both;
-	    fprTouched[(reg & mask)+1] = fprUseEnum::both;
-	    break;
-	  default:
-	    break;
-	  }
-	break;
-      case fprUseEnum::singlePrec:
-	fprTouched[(reg & mask)+0] = fprUseEnum::both;
-	fprTouched[(reg & mask)+1] = fprUseEnum::both;
-	break;
-      case fprUseEnum::doublePrec:
-      case fprUseEnum::both:
-	break;
-      default:
-	die();
-      }
-  }
-  else if(useType == fprUseEnum::singlePrec) {
-    switch(fprTouched[reg])
-      {
-      case fprUseEnum::unused:
-	fprTouched[reg] = fprUseEnum::singlePrec;
-	break;
-      case fprUseEnum::doublePrec:
-	fprTouched[(reg & mask)+0] = fprUseEnum::both;
-	fprTouched[(reg & mask)+1] = fprUseEnum::both;
-	break;
-      case fprUseEnum::singlePrec:
-      case fprUseEnum::both:
-	break;
-      default:
-	die();
-      }
-  }
-  else {
-    die();
-  }
-}
 
 bool cfgBasicBlock::dominates(const cfgBasicBlock *B) const {
   if(this==B)
