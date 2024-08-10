@@ -1,7 +1,6 @@
 #ifndef __EXECUNIT_HH__
 #define  __EXECUNIT_HH__
 
-#include "state.hh"
 #include "helper.hh"
 #include <cstdint>
 #include <string>
@@ -14,9 +13,6 @@ protected:
   uint64_t inscnt;
 public:
   execUnit() : inscnt(0) {}
-  virtual basicBlock* run(state_t *s)  {
-    return nullptr;
-  };
   virtual void info() = 0;
   virtual uint64_t getEntryAddr() const = 0;
   virtual ~execUnit() {}

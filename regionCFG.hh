@@ -257,7 +257,6 @@ protected:
   void findNaturalLoops();
   bool dominates(cfgBasicBlock *A, cfgBasicBlock *B) const;
   uint64_t getEntryAddr() const override;
-  basicBlock* run(state_t *s) override;
   void info() override;
   void toposort(std::vector<cfgBasicBlock*> &topo) const;
   uint64_t countInsns() const;

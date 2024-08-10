@@ -657,10 +657,6 @@ std::ostream &operator<<(std::ostream &out, const regionCFG &cfg) {
   return out;
 }
 
-
-
-basicBlock* regionCFG::run(state_t *ss) { return nullptr; }
-
 void regionCFG::dumpRISCV() {
   std::stringstream ss;
   ss << "cfg_" << std::hex << cfgHead->getEntryAddr() << std::dec << ".txt";
