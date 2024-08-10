@@ -227,7 +227,6 @@ void regionCFG::dropCompiled() {
 llvmRegTables::llvmRegTables(regionCFG *cfg) :
   MipsRegTable<llvm::Value>(),
   cfg(cfg),
-  myIRBuilder(cfg->myIRBuilder),
   iCnt(nullptr) {}
 
 llvmRegTables::llvmRegTables() :
@@ -261,7 +260,6 @@ void ssaRegTables::copy(const ssaRegTables &other) {
 }
 
 llvm::Value *llvmRegTables::setGPR(uint32_t gpr, uint32_t x) {
-  gprTbl[gpr] = llvm::ConstantInt::get(llvm::Type::getInt32Ty(*cfg->Context),x);
   return gprTbl[gpr];
 }
 
@@ -273,153 +271,27 @@ llvm::Value *llvmRegTables::loadGPR(uint32_t gpr) {
 
 
 llvm::Value *llvmRegTables::getFPR(uint32_t fpr, fprUseEnum useType) {
-  assert(fprTbl[fpr]!=nullptr);
-  if(cfg->allFprTouched[fpr]==fprUseEnum::singlePrec or
-     cfg->allFprTouched[fpr]==fprUseEnum::doublePrec) {
-    return fprTbl[fpr];
-  }
-  else if(cfg->allFprTouched[fpr]==fprUseEnum::both) {
-    if(useType == fprUseEnum::singlePrec) {
-      return fprTbl[fpr];
-    }
-    else if(useType == fprUseEnum::doublePrec) {
-      assert((fpr&0x1) == 0);
-      if(fprTbl[fpr+0] == nullptr) {
-	loadFPR(fpr+0);
-      }
-      if(fprTbl[fpr+1] == nullptr) {
-	loadFPR(fpr+1);
-      }
-      assert(fprTbl[fpr+0]);
-      assert(fprTbl[fpr+1]);
-      llvm::Value *vL = myIRBuilder->CreateBitCast(fprTbl[fpr+0], cfg->type_int32);
-      llvm::Value *vH = myIRBuilder->CreateBitCast(fprTbl[fpr+1], cfg->type_int32);
-      llvm::Value *vL64 = myIRBuilder->CreateZExt(vL, cfg->type_int64);
-      llvm::Value *vH64 = myIRBuilder->CreateZExt(vH, cfg->type_int64);
-      
-      llvm::Value *v32 = llvm::ConstantInt::get(cfg->type_int64,32);
-      vH64 = myIRBuilder->CreateShl(vH64, v32);
-      llvm::Value *v = myIRBuilder->CreateOr(vH64, vL64);
-      return myIRBuilder->CreateBitCast(v, cfg->type_double);
-    }
-    else {
-      std::cerr << "f" << fpr << " : useType = " << useType << "\n";
-      die();
-    }
-  }
-
-  die();
   return nullptr;
 }
 
-void llvmRegTables::setFPR(uint32_t fpr, llvm::Value *v) {
-  if(cfg->allFprTouched[fpr]==fprUseEnum::both) {
-    if(v->getType() == cfg->type_float) {
-      fprTbl[fpr] = v;
-    }
-    else if(v->getType() == cfg->type_double) {
-      assert((fpr&0x1) == 0);
-      v = myIRBuilder->CreateBitCast(v, cfg->type_int64);
-      llvm::Value *v32 = llvm::ConstantInt::get(cfg->type_int64,32);
-      llvm::Value *vShft = myIRBuilder->CreateLShr(v, v32);
-      llvm::Value *vH = myIRBuilder->CreateTrunc(vShft, cfg->type_int32);
-      llvm::Value *vL = myIRBuilder->CreateTrunc(v, cfg->type_int32);
-      fprTbl[fpr+0] = myIRBuilder->CreateBitCast(vL, cfg->type_float);
-      fprTbl[fpr+1] = myIRBuilder->CreateBitCast(vH, cfg->type_float);
-    }
-    else {
-      die();
-    }
-  }
-  else {
-    fprTbl[fpr] = v;
-  }
-}
+void llvmRegTables::setFPR(uint32_t fpr, llvm::Value *v) {}
 
 
 llvm::Value *llvmRegTables::loadFPR(uint32_t fpr) {
-  if(fprTbl[fpr])
-    return fprTbl[fpr];
-
-  llvm::Value *offs = llvm::ConstantInt::get(llvm::Type::getInt32Ty(*cfg->Context),fpr);
-  llvm::Value *basePtr = cfg->blockArgMap.at("cpr1");
-  llvm::Value *gep = myIRBuilder->MakeGEP(basePtr, offs);
-  dbt_assert(gep && "no gep!");
-  llvm::Value *ld = nullptr;
-  std::string ldName = "f" + std::to_string(fpr) + "_" + std::to_string(cfg->getuuid()++);
-  if(cfg->allFprTouched[fpr]==fprUseEnum::singlePrec) {
-    gep = myIRBuilder->CreatePointerCast(gep, llvm::Type::getFloatPtrTy(*cfg->Context));
-    ld = myIRBuilder->MakeLoad(gep,ldName);
-  }
-  else if(cfg->allFprTouched[fpr]==fprUseEnum::doublePrec) {
-    gep = myIRBuilder->CreatePointerCast(gep, llvm::Type::getDoublePtrTy(*cfg->Context));
-    ld = myIRBuilder->MakeLoad(gep,ldName);
-  }
-  else {
-    gep = myIRBuilder->CreatePointerCast(gep, llvm::Type::getFloatPtrTy(*cfg->Context));
-    ld = myIRBuilder->MakeLoad(gep,ldName);
-  }
-
-  
-  dbt_assert(ld && "no load");
-  fprTbl[fpr] = ld;
-  return fprTbl[fpr];
+  return nullptr;
 }
 
 
 llvm::Value *llvmRegTables::loadFCR(uint32_t fcr) {
-  if(fcrTbl[fcr]!=nullptr)
-    return fcrTbl[fcr];
-
-  llvm::Value *offs = llvm::ConstantInt::get(llvm::Type::getInt32Ty(*cfg->Context),fcr);
-  llvm::Value *basePtr = cfg->blockArgMap.at("fcr1");
-  llvm::Value *gep = myIRBuilder->MakeGEP(basePtr, offs);
-  gep = myIRBuilder->CreatePointerCast(gep, llvm::Type::getInt32PtrTy(*cfg->Context));
-  fcrTbl[fcr] = myIRBuilder->MakeLoad(gep, "");
-  return fcrTbl[fcr];
+  return nullptr;
 }
 
 void llvmRegTables::initIcnt() {}
-
 void llvmRegTables::incrIcnt(size_t amt) {}
-
 void llvmRegTables::storeIcnt() {}
-
-void llvmRegTables::storeGPR(uint32_t gpr) {
-  using namespace llvm;
-  Value *offs = ConstantInt::get(Type::getInt32Ty(*(cfg->Context)),gpr);
-  Value *gep = myIRBuilder->MakeGEP(cfg->blockArgMap["gpr"], offs);
-  myIRBuilder->CreateStore(gprTbl[gpr], gep);
-}
-void llvmRegTables::storeFPR(uint32_t fpr) {
-  using namespace llvm;
-  Value *offs = ConstantInt::get(Type::getInt32Ty(*cfg->Context),fpr);
-  Value *basePtr = cfg->blockArgMap.at("cpr1");
-  Value *gep = myIRBuilder->MakeGEP(basePtr, offs);
-  dbt_assert(gep && "no gep!");
-
-  if(cfg->allFprTouched[fpr]==fprUseEnum::singlePrec) {
-    gep = myIRBuilder->CreatePointerCast(gep,Type::getFloatPtrTy(*cfg->Context));
-  }
-  else if(cfg->allFprTouched[fpr]==fprUseEnum::doublePrec) {
-    gep = myIRBuilder->CreatePointerCast(gep, Type::getDoublePtrTy(*cfg->Context));
-  }
-  else if(cfg->allFprTouched[fpr]==fprUseEnum::both) {
-    gep = myIRBuilder->CreatePointerCast(gep,Type::getFloatPtrTy(*cfg->Context));
-  }
-  else {
-    die();
-  }
-  myIRBuilder->CreateStore(fprTbl[fpr], gep);
-}
-
-void llvmRegTables::storeFCR(uint32_t fcr) {
-  using namespace llvm;
-  Value *offs = ConstantInt::get(Type::getInt32Ty(*(cfg->Context)),fcr);
-  Value *gep = myIRBuilder->MakeGEP(cfg->blockArgMap["fcr1"], offs);
-  myIRBuilder->CreateStore(fcrTbl[fcr], gep);
-}
-
+void llvmRegTables::storeGPR(uint32_t gpr) {}
+void llvmRegTables::storeFPR(uint32_t fpr) {}
+void llvmRegTables::storeFCR(uint32_t fcr) {}
 
 
 void regionCFG::getRegDefBlocks() {
@@ -682,8 +554,6 @@ bool regionCFG::analyzeGraph() {
   return true;
 }
 
-void regionCFG::initLLVMAndGeneratePreamble() {}
-
 regionCFG::regionCFG() : execUnit() {
   regionCFGs.insert(this);
   perfectNest = true;
@@ -698,15 +568,9 @@ regionCFG::regionCFG() : execUnit() {
   head = nullptr;
   cfgHead = nullptr;
   entryBlock = 0;
-  Context = 0;
-  blockFunction = 0;
   hasBoth = false;
   validDominanceAcceleration = false;
   compileTime = 0.0;
-  myIRBuilder=nullptr;
-  myModule= nullptr;
-  myEngineBuilder=nullptr;
-  myExecEngine=nullptr;
   allFprTouched.resize(32, fprUseEnum::unused);
   runHistory.fill(0);
 }
@@ -718,15 +582,6 @@ regionCFG::~regionCFG() {
     delete cblk;
   }
   cfgBlocks.clear();
-    
-  if(myIRBuilder)
-    delete myIRBuilder; 
-
-  if(myExecEngine)
-    delete myExecEngine;
-
-  if(myEngineBuilder)
-    delete myEngineBuilder;
 }
 
  
@@ -995,61 +850,6 @@ void regionCFG::asDot() const {
   
   out << "}\n";
   out.close();
-}
-
-
-llvm::BasicBlock* regionCFG::generateAbortBasicBlock(uint32_t abortpc, 
-						    llvmRegTables& regTbl,
-						    cfgBasicBlock *cBB,
-						    llvm::BasicBlock *lBB,
-						    uint32_t locpc) {
-#if 0
-  if(lBB == nullptr) {
-    for(const auto &bb : blocks) {
-      uint32_t e = bb->getEntryAddr();
-      for(size_t i = 0, n = bb->getNumIns(); i < n; ++i) {
-	uint32_t a = e + (4*i);
-	if(a == abortpc) {
-	  std::cerr << "ABORTING TO PC "
-		    << std::hex
-		    << abortpc
-		    << " from "
-		    << locpc
-		    << std::dec
-		    << " IN TRACE!!!\n";
-
-	  basicBlock *sbb = nullptr;
-	  for(auto &zbb : blocks) {
-	    uint32_t sa = zbb->getEntryAddr();
-	    uint32_t ea = sa + (4*zbb->getNumIns());
-	    if(locpc >= sa and locpc < ea) {
-	      sbb = zbb;
-	      break;
-	    }
-	  }
-	  if(sbb) {
-	    std::cerr << "source:\n";
-	    std::cerr << *sbb;
-	  }
-	  std::cerr << "target:\n";
-	  std::cerr << *bb;
-	  //dbt_backregion();
-	  //abort();
-	}
-      }
-    }
-  }
-#endif
-  
-  llvm::Value *vNPC = llvm::ConstantInt::get(llvm::Type::getInt32Ty(*Context),abortpc);
-  return generateAbortBasicBlock(vNPC,regTbl,cBB,lBB);
-}
-
-llvm::BasicBlock* regionCFG::generateAbortBasicBlock(llvm::Value *abortpc, 
-						    llvmRegTables& regTbl,
-						    cfgBasicBlock *cBB,
-						    llvm::BasicBlock *lBB) {
-  return nullptr;
 }
 
 void regionCFG::print() {

@@ -209,11 +209,9 @@ class cfgBasicBlock {
 
   std::vector<fprUseEnum> fprTouched;
   
-  ssize_t dt_dfn = -1;
-  ssize_t dt_max_ancestor_dfn = -1;
+  ssize_t dt_dfn = -1, dt_max_ancestor_dfn = -1;
 
-  
-  llvm::BasicBlock *getSuccLLVMBasicBlock(uint64_t pc);
+
   void addPhiNode(gprPhiNode *phi);
   void addPhiNode(fprPhiNode *phi);
   void addPhiNode(fcrPhiNode *phi);
@@ -359,17 +357,7 @@ protected:
   std::set<basicBlock*> blocks;
   compiledCFG codeBits;
   perfmap *pmap;
-  llvm::LLVMContext *Context;
-  std::map<std::string, llvm::Value*> blockArgMap;
-  llvm::Function *blockFunction;
-  llvm::IRBuilder<> *myIRBuilder;
-  llvm::Module *myModule;
-  llvm::EngineBuilder *myEngineBuilder; 
-  llvm::ExecutionEngine *myExecEngine;
-  llvm::Type *type_iPtr32,*type_iPtr8;
-  llvm::Type *type_iPtr64,*type_void;
-  llvm::Type *type_float, *type_double;
-  llvm::Type *type_int32, *type_int64;
+
  
   std::set<cfgBasicBlock*> gprDefinitionBlocks[32];
   std::set<cfgBasicBlock*> fprDefinitionBlocks[32];
@@ -394,17 +382,6 @@ protected:
   void fastDominancePreComputation();
   void insertPhis();
   void getRegDefBlocks();
-  void initLLVMAndGeneratePreamble();
-  llvm::BasicBlock* generateAbortBasicBlock(uint32_t abortpc,
-					    llvmRegTables& regTbl, 
-					    cfgBasicBlock *cBB,
-					    llvm::BasicBlock *lBB,
-					    uint32_t locpc = 0);
-  
-  llvm::BasicBlock* generateAbortBasicBlock(llvm::Value *abortpc,
-					    llvmRegTables& regTbl, 
-					    cfgBasicBlock *cBB,
-					    llvm::BasicBlock *lBB);
   regionCFG();
   ~regionCFG();
   bool buildCFG(std::vector<std::vector<basicBlock*> > &regions);

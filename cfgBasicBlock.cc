@@ -339,9 +339,7 @@ bool cfgBasicBlock::dominates(const cfgBasicBlock *B) const {
   return false;
 }
 
-llvm::BasicBlock *cfgBasicBlock::getSuccLLVMBasicBlock(uint64_t pc) {
-  return nullptr;
-}
+
 
 void cfgBasicBlock::traverseAndRename(regionCFG *cfg){
   /* this only gets called for the entry block */
