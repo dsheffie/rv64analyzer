@@ -600,10 +600,21 @@ void regionCFG::asDot() const {
 	<< " : " << "<BR align='left'/>";
     for(ssize_t i = 0, ni = insns.size(); i < ni; i++) {
       const auto &p = insns.at(i);
-      uint32_t inst = p.inst, addr = i*4 + ea;
+      uint32_t inst = p.inst;
+      uint64_t addr = p.pc;
+      
+      if(tip.find(addr) == tip.end()) {
+	std::cout << "cant find phys addr "<< std::hex << addr
+		  << " virt addr " << p.vpc
+		  << std::dec
+		  << " in the tip map\n";
+      }
+      double cycles = tip[addr];
       auto asmString = getAsmString(inst, addr);
-      out << std::hex << addr << std::dec
-	  << " : " << asmString << "<BR align='left'/>";
+      out << std::hex << p.vpc << std::dec
+	  << " : " << asmString
+	  << ", cycles " << cycles
+	  << "<BR align='left'/>";
      
     }
     out << ">\nshape=\"record\"\n];\n";
