@@ -27,7 +27,6 @@ class phiNode : public ssaInsn {
  public:
   phiNode(insnDefType insnType = insnDefType::unknown) :
     ssaInsn(insnType) {}
-  virtual ~phiNode() {}
   virtual void print() const = 0;
   virtual void addIncomingEdge(regionCFG *cfg, cfgBasicBlock *b)  = 0;
   virtual void hookupRegs(MipsRegTable<ssaInsn> &tbl) override;

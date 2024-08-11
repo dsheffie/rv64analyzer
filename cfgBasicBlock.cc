@@ -6,10 +6,19 @@
 #include "globals.hh"
 
 cfgBasicBlock::~cfgBasicBlock() {
-  for(size_t i = 0; i < insns.size(); i++) 
-    delete insns[i];
-  for(size_t i = 0; i < phiNodes.size(); i++) 
-    delete phiNodes[i];
+  std::set<ssaInsn*> ops;
+  for(size_t i = 0; i < insns.size(); i++) {
+    ops.insert(insns[i]);
+  }
+  for(size_t i = 0; i < phiNodes.size(); i++) {
+    ops.insert(phiNodes[i]);
+  }
+  for(size_t i = 0; i < ssaInsns.size(); i++) {
+    ops.insert(ssaInsns[i]);
+  }
+  for(ssaInsn *op : ops) {
+    delete op;
+  }
 }
 
 void cfgBasicBlock::addWithInCFGEdges(regionCFG *cfg) {

@@ -3,6 +3,7 @@
 
 #include <array>
 #include <set>
+#include <list>
 #include <vector>
 #include "helper.hh"
 
@@ -30,9 +31,9 @@ protected:
   static uint64_t uuid_counter;
 public:
   ssaInsn(insnDefType insnType = insnDefType::unknown) :
-    insnType(insnType), uuid(uuid_counter++) {}
-  
-  virtual ~ssaInsn() {}
+    insnType(insnType), uuid(uuid_counter++) {
+  }
+  virtual ~ssaInsn() {}    
   const std::string &getName() const {
     return prettyName;
   }
