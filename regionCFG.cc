@@ -693,7 +693,7 @@ void regionCFG::asDot() const {
       }
       std::cout << "\t" << instances.size() << " instances\n";
       uint64_t m = instances.size() / 2;
-      uint64_t start = instances.at(m-1)-128;
+      uint64_t start = instances.at(m-1)-4;
       uint64_t stop = instances.at(m-1)+128;
       std::cout << "will dump " << (stop-start) << " instructions\n";
       std::stringstream nss;
