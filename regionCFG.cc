@@ -591,13 +591,32 @@ void regionCFG::asDot() const {
       bbs.insert(bb);
     }
   }
+
+  std::vector<std::pair<double,  const basicBlock*>> hotblocks;
+  for(const auto bb : bbs) {
+    const auto & insns = bb->getVecIns();
+    double t = 0.0;
+    for(ssize_t i = 0, ni = insns.size(); i < ni; i++) {
+      const auto &p = insns.at(i);
+      t+= tip[p.pc];
+    }
+    hotblocks.emplace_back(t, bb);
+  }
+  std::sort(hotblocks.begin(), hotblocks.end());
+  std::reverse(hotblocks.begin(), hotblocks.end());
+
+  std::cout << "hottest blocks\n";
+  for(size_t i = 0, l = hotblocks.size(); i < std::min(10UL, l); i++) {
+    auto bb = hotblocks.at(i).second;
+    uint64_t ea = bb->getEntryAddr();
+    std::cout << std::hex << ea << std::dec << "," << hotblocks.at(i).first << "\n";
+  }
   
   out << "digraph G {\n";
   /* vertices */
-  
   for(const auto bb : bbs) {
     const auto & insns = bb->getVecIns();
-    uint32_t ea = bb->getEntryAddr();
+    uint64_t ea = bb->getEntryAddr();
     out << "\"bb" << std::hex << ea << std::dec << "\"[\n";
     out << "label = <bb_0x" << std::hex << ea << std::dec
 	<< " : " << "<BR align='left'/>";

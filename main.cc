@@ -103,7 +103,6 @@ void execRiscv(uint32_t inst, uint64_t pc, uint64_t npc, uint64_t vpc) {
 
 void buildCFG(const std::list<inst_record> &trace, std::map<uint64_t,uint64_t> &counts) {
   auto nit = trace.begin(); nit++;
-  uint64_t cnt = 0;
   for(auto it = trace.begin(), E = trace.end(); nit != E; ++it) {
     uint64_t npc = ~0UL;
     const inst_record & ir = *it;
@@ -132,11 +131,8 @@ void buildCFG(const std::list<inst_record> &trace, std::map<uint64_t,uint64_t> &
       }
       globals::cBB = nbb;
     }
-  next:
-    ++cnt;
     ++nit;
   }
-  std::cout << "made it to end of trace\n";
 }
 
 
@@ -147,7 +143,7 @@ int main(int argc, char *argv[]) {
   tip_record tip;
   initCapstone();
   std::map<uint64_t,uint64_t> counts;
-  std::ifstream trace_ifs("test.dump", std::ios::binary);
+  std::ifstream trace_ifs("dhrystone.dump", std::ios::binary);
   boost::archive::binary_iarchive rt_(trace_ifs);
   std::ifstream tip_ifs("tip.dump", std::ios::binary);
   boost::archive::binary_iarchive tip_(tip_ifs);  
@@ -155,6 +151,10 @@ int main(int argc, char *argv[]) {
   rt_ >> rt;
   tip_ >> tip;
 
+  double tip_cycles = 0.0;
+  for(auto p : tip.m) {
+    tip_cycles += p.second;
+  }
 
   std::cout << "rt.get_records().size() = " <<
     rt.get_records().size() << "\n";
@@ -163,6 +163,8 @@ int main(int argc, char *argv[]) {
   globals::cBB = new basicBlock(rt.get_records().begin()->pc);
   buildCFG(rt.get_records(), counts);
 
+  std::cout << rt.get_records().size() / tip_cycles << " ipc\n";
+  
   std::ofstream out("blocks.txt");
   std::vector<std::vector<basicBlock*>> regions;
   std::vector<basicBlock*> r;
