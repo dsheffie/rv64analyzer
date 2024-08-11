@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <ostream>
 #include <cassert>
+#include <regex>
 #include <limits>
 #include <fstream>
 #include <boost/dynamic_bitset.hpp>
@@ -14,6 +15,73 @@
 
 
 static regionCFG *currCFG = nullptr;
+
+static void read_template(std::list<std::string> &pre, std::list<std::string> &post) {
+  std::string line;
+  std::fstream in("traceTemplate.html");
+  bool use_pre = true;
+  //var tableData = {}
+  while(getline(in, line)) {
+    if(std::regex_search(line, std::regex("var tableData"))) {
+      use_pre = false;
+      continue;
+    }
+    if(use_pre) {
+      pre.push_back(line);
+    }
+    else {
+      post.push_back(line);
+    }
+  }
+}
+
+static void dump_pipe(const std::string &oname,
+		      const std::list<pipeline_record> &pt,
+		      uint64_t start, uint64_t stop) {
+  std::list<std::string> pre, post, ops;
+  read_template(pre, post);
+  
+  size_t cnt = 0;
+  for(auto &rec : pt) {
+    ++cnt;
+    if(cnt < start)
+      continue;
+    if(cnt > stop)
+      break;
+    std::stringstream ss;
+    ss << "{" << "\"str\":\""
+       << std::hex << rec.pc << std::dec
+       << " " << rec.disasm << "\""
+       << ",uops:[{"
+       << "\"uuid\":"
+       << "\"" << rec.uuid << "\","
+       << "\"events\":{"
+       << "\"" << rec.fetch_cycle << "\":\"F\","
+       << "\"" << rec.alloc_cycle << "\":\"A\","
+       << "\"" << rec.complete_cycle << "\":\"C\","
+       << "\"" << rec.retire_cycle << "\":\"R\""                  
+       << "}}]"
+       << "}";
+    ops.push_back(ss.str());
+    //std::cout << ss.str() << "\n";
+  }
+  std::ofstream o(oname);
+  for(auto &l : pre) {
+    o << l << "\n";;
+  }
+  o << "var tableData = [";
+  for(auto it = ops.begin(), E = ops.end(); it != E; ++it) {
+    std::string &s = *it;
+    o << s;
+    if(std::next(it) != E) {
+      o << ",";
+    }
+  }
+  o << "]\n";
+  for(auto &l : post) {
+    o << l << "\n";
+  }
+}
 
 
 /* Implementation from Muchnick and Lengauer-Tarjan TOPLAS 
@@ -605,10 +673,33 @@ void regionCFG::asDot() const {
   std::reverse(hotblocks.begin(), hotblocks.end());
 
   std::cout << "hottest blocks\n";
+  bool gotpt = not(pt.empty());
   for(size_t i = 0, l = hotblocks.size(); i < std::min(10UL, l); i++) {
     auto bb = hotblocks.at(i).second;
     uint64_t ea = bb->getEntryAddr();
-    std::cout << std::hex << ea << std::dec << "," << hotblocks.at(i).first << "\n";
+    size_t num = bb->getVecIns().size();
+    double ipc = (num*counts[ea]) / hotblocks.at(i).first;
+    std::cout << std::hex << ea << std::dec << ","
+	      << hotblocks.at(i).first << ","
+	      << ipc << "\n";
+    if(gotpt) {
+      uint64_t icnt = 0;
+      std::vector<uint64_t> instances;
+      for(const pipeline_record & r : pt) {
+	if(r.pc == ea) {
+	  instances.push_back(icnt);
+	}
+	icnt++;
+      }
+      std::cout << "\t" << instances.size() << " instances\n";
+      uint64_t m = instances.size() / 2;
+      uint64_t start = instances.at(m-1)-128;
+      uint64_t stop = instances.at(m-1)+128;
+      std::cout << "will dump " << (stop-start) << " instructions\n";
+      std::stringstream nss;
+      nss << "pipe_" << std::hex << ea << std::dec << ".html";
+      dump_pipe(nss.str(), pt, start, stop);
+    }
   }
   
   out << "digraph G {\n";

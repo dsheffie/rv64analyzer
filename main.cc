@@ -159,7 +159,8 @@ int main(int argc, char *argv[]) {
   globals::cBB = new basicBlock(rt.get_records().begin()->pc);
   buildCFG(rt.get_records(), counts);
 
-  std::cout << rt.get_records().size() / tip_cycles << " ipc\n";
+  double ipc = rt.get_records().size() / tip_cycles;
+  std::cout << ipc << " ipc\n";
 
   if(pipe.size() != 0) {
     pt.read(pipe);
