@@ -366,14 +366,13 @@ bool regionCFG::analyzeGraph() {
 }
 
 regionCFG::regionCFG(std::map<int64_t, double> &tip,
-		     std::map<uint64_t, uint64_t> &counts) :
-  execUnit(), tip(tip), counts(counts) {
+		     std::map<uint64_t, uint64_t> &counts,
+		     std::list<pipeline_record> &r) :
+  execUnit(), tip(tip), counts(counts), pt(r) {
   regionCFGs.insert(this);
   perfectNest = true;
   innerPerfectBlock = 0;
-  runs = uuid = 0;
-  minIcnt = std::numeric_limits<uint64_t>::max();
-  maxIcnt = 0; 
+  uuid = 0;
   head = nullptr;
   cfgHead = nullptr;
   entryBlock = 0;

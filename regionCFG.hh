@@ -14,6 +14,7 @@
 #include "execUnit.hh"
 #include "basicBlock.hh"
 #include "ssaInsn.hh"
+#include "pipeline_record.hh"
 #include "riscvInstruction.hh"
 
 class regionCFG;
@@ -192,13 +193,14 @@ class regionCFG : public execUnit {
 protected:
   std::map<int64_t, double> &tip;
   std::map<uint64_t,uint64_t> &counts;
-
+  std::list<pipeline_record> &pt;
+  
   /* to be constructor list initialized */
   basicBlock *head = nullptr;
   cfgBasicBlock *cfgHead = nullptr;
   cfgBasicBlock *entryBlock = nullptr;
   cfgBasicBlock *innerPerfectBlock = nullptr;
-  uint64_t uuid = 0,runs = 0, minIcnt = 0, maxIcnt = 0;
+  uint64_t uuid = 0;
   bool perfectNest = false;
   bool hasBoth = false;
   bool validDominanceAcceleration = false;
@@ -234,7 +236,7 @@ protected:
   void fastDominancePreComputation();
   void insertPhis();
   void getRegDefBlocks();
-  regionCFG(std::map<int64_t, double> &m, std::map<uint64_t,uint64_t> &c);
+  regionCFG(std::map<int64_t, double> &m, std::map<uint64_t,uint64_t> &c, std::list<pipeline_record> &r);
   ~regionCFG();
   bool buildCFG(std::vector<std::vector<basicBlock*> > &regions);
 

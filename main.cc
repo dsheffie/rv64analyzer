@@ -18,6 +18,7 @@
 #include "regionCFG.hh"
 #include "globals.hh"
 #include "inst_record.hh"
+#include "pipeline_record.hh"
 
 extern const char* githash;
 int sArgc = -1;
@@ -118,13 +119,16 @@ void buildCFG(const std::list<inst_record> &trace, std::map<uint64_t,uint64_t> &
 int main(int argc, char *argv[]) {
   namespace po = boost::program_options; 
   retire_trace rt;
-  std::string input;
+  pipeline_reader pt;
+  std::string input, pipe;
   std::map<uint64_t,uint64_t> counts;
   try {
     po::options_description desc("Options");
     desc.add_options() 
       ("help", "Print help messages")
       ("in,i", po::value<std::string>(&input), "input dump")
+      ("pipe,p", po::value<std::string>(&pipe), "pipe dump")
+     
       ; 
     po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -134,11 +138,13 @@ int main(int argc, char *argv[]) {
     std::cerr <<"command-line error : " << e.what() << "\n";
     return -1;
   }
-  
+  if(input.size() == 0) {
+    std::cout << "need input dump\n";
+    return -1;
+  }
   initCapstone();
   std::ifstream trace_ifs(input, std::ios::binary);
   boost::archive::binary_iarchive rt_(trace_ifs);
-  
   rt_ >> rt;
 
   double tip_cycles = 0.0;
@@ -148,12 +154,17 @@ int main(int argc, char *argv[]) {
 
   std::cout << "rt.get_records().size() = " <<
     rt.get_records().size() << "\n";
-
+  
 
   globals::cBB = new basicBlock(rt.get_records().begin()->pc);
   buildCFG(rt.get_records(), counts);
 
   std::cout << rt.get_records().size() / tip_cycles << " ipc\n";
+
+  if(pipe.size() != 0) {
+    pt.read(pipe);
+  }
+  
   
   std::ofstream out("blocks.txt");
   std::vector<std::vector<basicBlock*>> regions;
@@ -166,7 +177,7 @@ int main(int argc, char *argv[]) {
   }
   
   regions.push_back(r);
-  regionCFG *cfg = new regionCFG(rt.tip, counts);
+  regionCFG *cfg = new regionCFG(rt.tip, counts, pt.get_records());
   cfg->buildCFG(regions);
   stopCapstone();
 
