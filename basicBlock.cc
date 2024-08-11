@@ -168,7 +168,7 @@ void basicBlock::dropCompiledCode() {
 }
 
 basicBlock *basicBlock::split(uint64_t nEntryAddr) {
-#if 1
+#if 0
   std::cerr << "split @ 0x" << std::hex << entryAddr << std::dec 
 	    << " cfgInRegions.size() = " << cfgInRegions.size() 
 	    << std::endl;

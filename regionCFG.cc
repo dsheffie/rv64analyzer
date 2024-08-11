@@ -616,9 +616,17 @@ void regionCFG::asDot() const {
   /* vertices */
   for(const auto bb : bbs) {
     const auto & insns = bb->getVecIns();
+    double cycles = 0.0;
+    for(ssize_t i = 0, ni = insns.size(); i < ni; i++) {
+      const auto &p = insns.at(i);
+      cycles += tip[p.pc];
+    }
+    
     uint64_t ea = bb->getEntryAddr();
     out << "\"bb" << std::hex << ea << std::dec << "\"[\n";
     out << "label = <bb_0x" << std::hex << ea << std::dec
+	<< ", count " << counts[ea]
+	<< ", cycles " << cycles
 	<< " : " << "<BR align='left'/>";
     for(ssize_t i = 0, ni = insns.size(); i < ni; i++) {
       const auto &p = insns.at(i);

@@ -24,38 +24,15 @@ int sArgc = -1;
 char** sArgv = nullptr;
 
 namespace globals {
-  int sArgc = 0;
-  char** sArgv = nullptr;
-  bool isMipsEL = false;
-  bool countInsns = true;
-  bool simPoints = false;
-  bool replay = false;
-  uint64_t simPointsSlice = 0;
-  uint64_t nCfgCompiles = 0;
   basicBlock *cBB = nullptr;
   execUnit *currUnit = nullptr;
   bool enClockFuncts = false;
   bool enableCFG = true;
   bool verbose = false;
-  bool ipo = true;
-  bool fuseCFGs = true;
-  bool enableBoth = true;
-  uint32_t enoughRegions = 5;
   bool dumpIR = false;
   bool dumpCFG = false;
   bool splitCFGBBs = true;
-  uint64_t nFuses = 0;
-  uint64_t nAttemptedFuses = 0;
-  std::string blobName;
-  uint64_t icountMIPS = 500;
-  std::string binaryName;
-  std::set<int> openFileDes;
-  bool profile = false;
-  uint64_t dumpicnt = ~(0UL);
   bool log = false;
-  uint64_t tohost_addr = 0;
-  uint64_t fromhost_addr = 0;
-  std::map<uint32_t, uint64_t> syscall_histo;
 }
 
 std::set<regionCFG*> regionCFG::regionCFGs;
@@ -139,20 +116,33 @@ void buildCFG(const std::list<inst_record> &trace, std::map<uint64_t,uint64_t> &
 
 
 int main(int argc, char *argv[]) {
+  namespace po = boost::program_options; 
   retire_trace rt;
-  tip_record tip;
-  initCapstone();
+  std::string input;
   std::map<uint64_t,uint64_t> counts;
-  std::ifstream trace_ifs("dhrystone.dump", std::ios::binary);
+  try {
+    po::options_description desc("Options");
+    desc.add_options() 
+      ("help", "Print help messages")
+      ("in,i", po::value<std::string>(&input), "input dump")
+      ; 
+    po::variables_map vm;
+    po::store(po::parse_command_line(argc, argv, desc), vm);
+    po::notify(vm); 
+  }
+  catch(po::error &e) {
+    std::cerr <<"command-line error : " << e.what() << "\n";
+    return -1;
+  }
+  
+  initCapstone();
+  std::ifstream trace_ifs(input, std::ios::binary);
   boost::archive::binary_iarchive rt_(trace_ifs);
-  std::ifstream tip_ifs("tip.dump", std::ios::binary);
-  boost::archive::binary_iarchive tip_(tip_ifs);  
   
   rt_ >> rt;
-  tip_ >> tip;
 
   double tip_cycles = 0.0;
-  for(auto p : tip.m) {
+  for(auto p : rt.tip) {
     tip_cycles += p.second;
   }
 
@@ -176,7 +166,7 @@ int main(int argc, char *argv[]) {
   }
   
   regions.push_back(r);
-  regionCFG *cfg = new regionCFG(tip.m, counts);
+  regionCFG *cfg = new regionCFG(rt.tip, counts);
   cfg->buildCFG(regions);
   stopCapstone();
 
