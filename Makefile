@@ -18,10 +18,9 @@ ifeq ($(UNAME_S),Darwin)
 endif
 
 
+OPT = -g -O0 -Wall -Wpedantic -Wextra -Wno-unused-parameter
 CXXFLAGS = -std=c++17 -g $(OPT)
 
-
-OPT = -g -O3 -Wall -Wpedantic -Wextra -Wno-unused-parameter
 EXE = perf_analyzer
 OBJ = main.o cfgBasicBlock.o disassemble.o helper.o basicBlock.o compile.o riscvInstruction.o regionCFG.o githash.o
 DEP = $(OBJ:.o=.d)

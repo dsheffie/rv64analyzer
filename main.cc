@@ -21,19 +21,14 @@
 #include "pipeline_record.hh"
 
 extern const char* githash;
-int sArgc = -1;
-char** sArgv = nullptr;
 
 namespace globals {
   basicBlock *cBB = nullptr;
   execUnit *currUnit = nullptr;
-  bool enClockFuncts = false;
   bool enableCFG = true;
   bool verbose = false;
   bool dumpIR = false;
   bool dumpCFG = false;
-  bool splitCFGBBs = true;
-  bool log = false;
 }
 
 std::set<regionCFG*> regionCFG::regionCFGs;

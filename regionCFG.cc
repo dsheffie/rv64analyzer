@@ -315,9 +315,7 @@ bool regionCFG::buildCFG(std::vector<std::vector<basicBlock*> > &regions) {
 	   heads.size());
     die();
   }
-  printf("%d\n", __LINE__);
   head = regions.at(0).at(0);
-  printf("%d\n", __LINE__);  
   if(head==nullptr) {
     die();
   }
@@ -349,7 +347,6 @@ bool regionCFG::buildCFG(std::vector<std::vector<basicBlock*> > &regions) {
     cfgMap[bb] = cbb;
   }
   
-  printf("%d\n", __LINE__);
   for(auto bb : blocks) {
     for(auto nbb : bb->getSuccs()) {
       auto it = cfgMap.find(nbb);
@@ -358,7 +355,6 @@ bool regionCFG::buildCFG(std::vector<std::vector<basicBlock*> > &regions) {
       }
     }
   }
-  printf("%d\n", __LINE__);
  
 
   /* "compile" mips instructions into proper class */
@@ -371,7 +367,6 @@ bool regionCFG::buildCFG(std::vector<std::vector<basicBlock*> > &regions) {
     cfgBlockMap[ep] = cbb;
   }
 
-  printf("%d\n", __LINE__);
   uint32_t typeCnts[dummyprec-integerprec] = {0};
   for(size_t i = 0; i < cfgBlocks.size(); i++) {
     cfgBasicBlock *cbb = cfgBlocks[i];
@@ -677,27 +672,33 @@ void regionCFG::asDot() const {
   for(size_t i = 0, l = hotblocks.size(); i < std::min(10UL, l); i++) {
     auto bb = hotblocks.at(i).second;
     uint64_t ea = bb->getEntryAddr();
+    const auto &vecIns = bb->getVecIns();
+    uint64_t vpc = vecIns.at(0).vpc;
     size_t num = bb->getVecIns().size();
     double ipc = (num*counts[ea]) / hotblocks.at(i).first;
-    std::cout << std::hex << ea << std::dec << ","
+    std::cout << std::hex << vpc << std::dec << ","
 	      << hotblocks.at(i).first << ","
 	      << ipc << "\n";
     if(gotpt) {
       uint64_t icnt = 0;
       std::vector<uint64_t> instances;
+      
       for(const pipeline_record & r : pt) {
-	if(r.pc == ea) {
+	if(r.pc == vpc) {
 	  instances.push_back(icnt);
 	}
 	icnt++;
       }
       std::cout << "\t" << instances.size() << " instances\n";
+      if(instances.size() < 10) {
+	continue;
+      }
       uint64_t m = instances.size() / 2;
       uint64_t start = instances.at(m-1)-4;
       uint64_t stop = instances.at(m-1)+128;
       std::cout << "will dump " << (stop-start) << " instructions\n";
       std::stringstream nss;
-      nss << "pipe_" << std::hex << ea << std::dec << ".html";
+      nss << "pipe_" << std::hex << vpc << std::dec << ".html";
       dump_pipe(nss.str(), pt, start, stop);
     }
   }
