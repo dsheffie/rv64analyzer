@@ -173,8 +173,14 @@ basicBlock *basicBlock::split(uint64_t nEntryAddr) {
 	    << " cfgInRegions.size() = " << cfgInRegions.size() 
 	    << std::endl;
 #endif
-  size_t offs = (nEntryAddr-entryAddr) >> 2;
-  
+  /* dumb linear search because VA != PA */
+  ssize_t offs = 0;
+  for(auto &p : vecIns) {
+    if(p.pc == nEntryAddr) {
+      break;
+    }
+    offs++;
+  }  
   dropCompiledCode();
 
   basicBlock *nBB = new basicBlock(nEntryAddr);
@@ -201,7 +207,8 @@ basicBlock *basicBlock::split(uint64_t nEntryAddr) {
     insMap[addr] = nBB;
     nBB->vecIns.push_back(vecIns[i]);
   }
-  
+
+  assert(offs < vecIns.size());
   vecIns.erase(vecIns.begin() + offs, vecIns.end());
 
   nBB->termAddr = termAddr;
