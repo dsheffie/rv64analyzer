@@ -30,7 +30,7 @@ namespace globals {
   bool dumpIR = false;
   bool dumpCFG = false;
 }
-
+std::map<uint64_t, std::map<uint64_t, uint64_t>> basicBlock::globalEdges;
 std::set<regionCFG*> regionCFG::regionCFGs;
 uint64_t regionCFG::icnt = 0;
 uint64_t regionCFG::iters = 0;
@@ -81,6 +81,7 @@ void buildCFG(const std::list<inst_record> &trace, std::map<uint64_t,uint64_t> &
     const inst_record & ir = *it;
     if(nit != E) {
       npc = nit->pc;
+      basicBlock::globalEdges[ir.pc][npc]++;
     }
     counts[ir.pc]++;
 #if 0

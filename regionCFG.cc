@@ -736,23 +736,27 @@ void regionCFG::asDot() const {
 	  << " : " << asmString
 	  << ", cycles " << cycles
 	  << "<BR align='left'/>";
-     
     }
     out << ">\nshape=\"record\"\n];\n";
   }
   /* edges */
   for(const auto* bb : bbs) {
     std::stringstream ss;
+    uint64_t t = bb->getTermAddr();
     ss << "\"bb" << std::hex << bb->getEntryAddr() << std::dec << "\"";
     std::string s = ss.str();
     for(const auto &nbb : bb->getSuccs()) {
+      uint64_t e = nbb->getEntryAddr();
+      uint64_t w = basicBlock::globalEdges[t][e];
       out << s
 	  << " -> "
 	  << "\"bb"
 	  << std::hex
-	  << nbb->getEntryAddr()
+	  << e
 	  << std::dec
-	  << "\"\n"; 
+	  << "\""
+	  << "[ label=" << w <<"]"
+	  << "\n"; 
     }
   }
   

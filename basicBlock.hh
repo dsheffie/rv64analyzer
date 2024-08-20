@@ -30,6 +30,7 @@ public:
       inst(inst), pc(pc), vpc(vpc) {}
   };
   typedef std::vector<instruction, backtrace_allocator<instruction>> insContainer;
+  static std::map<uint64_t, std::map<uint64_t, uint64_t>> globalEdges;  
 private:
   friend std::ostream &operator<<(std::ostream &out, const basicBlock &bb);
   friend int main(int, char**);
@@ -56,10 +57,13 @@ private:
   uint64_t totalEdges = 0;
   insContainer vecIns;
   std::map<uint64_t, uint64_t> edgeCnts;
-
+  /* pc -> pc and count */
   /* heads of regions that include this block */
   std::set<basicBlock*> cfgInRegions;
-  void toposort(const std::set<basicBlock*> &valid, std::list<basicBlock*> &ordered, std::set<basicBlock*> &visited);
+  
+  void toposort(const std::set<basicBlock*> &valid,
+		std::list<basicBlock*> &ordered,
+		std::set<basicBlock*> &visited);
 public:
   static void dropAllBBs();
   static void dumpCFG();
