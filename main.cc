@@ -84,18 +84,36 @@ void buildCFG(const std::list<inst_record> &trace, std::map<uint64_t,uint64_t> &
       basicBlock::globalEdges[ir.pc][npc]++;
     }
     counts[ir.pc]++;
-#if 0
-    printf("%lx %s -> %lx (cbb %lx, term %lx, read only %d)\n",
-	   ir.pc,
-	   getAsmString(ir.inst, ir.pc).c_str(),
-	   npc,
-	   globals::cBB->getEntryAddr(),
-	   globals::cBB->getTermAddr(),
-	   globals::cBB->isReadOnly()
-	   );
-#endif
+    // if(ir.pc == 0x8a7de5ecUL) {
+    //   printf("%lx %s -> %lx (cbb %lx, term %lx, read only %d)\n",
+    // 	     ir.pc,
+    // 	     getAsmString(ir.inst, ir.pc).c_str(),
+    // 	     npc,
+    // 	     globals::cBB->getEntryAddr(),
+    // 	     globals::cBB->getTermAddr(),
+    // 	     globals::cBB->isReadOnly()
+    // 	     );
+    // }
     
     if( not(globals::cBB->isReadOnly()) ) {
+      if(basicBlock::bbInBlock(ir.pc) != nullptr) {
+	std::cout << *(globals::cBB);
+
+	auto &ic = globals::cBB->getVecIns();
+	auto lpc = ic.at(ic.size()-1).pc;
+	globals::cBB->setTermAddr(lpc);      
+	getNextBlock(ir.pc);	
+	
+	printf("%lx %s -> %lx (cbb %lx, term %lx, read only %d)\n",
+	       ir.pc,
+	       getAsmString(ir.inst, ir.pc).c_str(),
+	       npc,
+	       globals::cBB->getEntryAddr(),
+	       globals::cBB->getTermAddr(),
+	       globals::cBB->isReadOnly()
+	       );
+	//abort();
+      }
       execRiscv(ir.inst, ir.pc, npc, ir.vpc);
     }
     else if(ir.pc == globals::cBB->getTermAddr()) {

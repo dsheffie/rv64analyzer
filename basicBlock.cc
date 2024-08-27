@@ -90,6 +90,14 @@ void basicBlock::dropAllBBs() {
   globals::cBB = nullptr;
 }
 
+basicBlock *basicBlock::bbInBlock(uint64_t pc) {
+  auto it = insMap.find(pc);
+  if(it == insMap.end()) {
+    return nullptr;
+  }
+  return it->second;
+}
+
 void basicBlock::setReadOnly() {
   if(not(readOnly)) {
     readOnly = true;
@@ -144,6 +152,8 @@ basicBlock::basicBlock(uint64_t entryAddr) : execUnit(), entryAddr(entryAddr) {
 basicBlock::basicBlock(uint64_t entryAddr, basicBlock *prev) : basicBlock(entryAddr) {
   prev->addSuccessor(this);
 }
+
+
 
 void basicBlock::addIns(uint32_t inst, uint64_t addr, uint64_t vpc) {
   if(not(readOnly)) {
@@ -226,11 +236,7 @@ basicBlock *basicBlock::split(uint64_t nEntryAddr) {
   nBB->inscnt = inscnt;
   nBB->setReadOnly();
   
-  if(entryAddr == 0x80009dd8) {
-    std::cout << *this;
-    std::cout << *nBB;
-  }
-  
+
   return nBB;
 }
 

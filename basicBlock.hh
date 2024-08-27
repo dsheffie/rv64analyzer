@@ -81,6 +81,7 @@ public:
   basicBlock(uint64_t entryAddr);
   ~basicBlock();
   void dropCompiledCode();
+  static basicBlock *bbInBlock(uint64_t pc);
   basicBlock *findBlock(uint64_t entryAddr);
   /* no mutate */
   static basicBlock *globalFindBlock(uint64_t entryAddr);
