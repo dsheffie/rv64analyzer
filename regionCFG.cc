@@ -58,12 +58,30 @@ static void dump_pipe(const std::string &oname,
        << "\"events\":{"
        << "\"" << rec.fetch_cycle << "\":\"F\","
        << "\"" << rec.alloc_cycle << "\":\"A\","
-       << "\"" << rec.complete_cycle << "\":\"C\","
+       << "\"" << rec.sched_cycle << "\":\"S\",";
+
+    for(uint64_t c : rec.l1d_blocks) {
+      ss << "\"" << c << "\":\"B\",";
+    }
+    
+    //for(uint64_t c : rec.l1d_sd) {
+    //  ss << "\"" << c << "\":\"Z\",";
+    //}
+
+    if(rec.p1_hit_cycle != (~0UL)) {
+      ss << "\"" << rec.p1_hit_cycle << "\":\"H\",";
+    }
+    if(rec.p1_miss_cycle != (~0UL)) {
+      ss << "\"" << rec.p1_miss_cycle << "\":\"M\",";
+    }
+    if(rec.l1d_replay != (~0UL)) {
+      ss << "\"" << rec.l1d_replay << "\":\"L\",";
+    }
+    ss << "\"" << rec.complete_cycle << "\":\"C\","
        << "\"" << rec.retire_cycle << "\":\"R\""                  
        << "}}]"
        << "}";
     ops.push_back(ss.str());
-    //std::cout << ss.str() << "\n";
   }
   std::ofstream o(oname);
   for(auto &l : pre) {

@@ -1,0 +1,9 @@
+HOWTO
+
+Use rv64core RTL to generate pipetraces and retiretraces:
+* ./rv64_core -f perl-primes.chpt6276265613.rv64.chpt --maxicnt $((16*1024*1024)) --retiretrace perl-primes.rt --pipelog perl-primes.pt -d 1 -c 0
+
+Use this tool to generate select pipetraces, CFG, SSA, etc:
+* ./perf_analyzer -i ../rv64core/perl-primes.rt -p ../rv64core/perl-primes.pt
+
+
