@@ -561,9 +561,13 @@ Insn* getInsn(uint32_t inst, uint64_t addr){
 	    return new csriInsn(inst, addr);	    
 	  }
 	  default:
-	    die();
+	    break;
 	  }
+	die();	
+	return nullptr;	
       }
+      die();
+      return nullptr;
     }
     default:
       std::cout << "what is opcode " << std::hex << opcode << std::dec << "\n";
