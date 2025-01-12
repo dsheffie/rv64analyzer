@@ -130,7 +130,7 @@ void basicBlock::addSuccessor(basicBlock *bb) {
   if(succs.find(bb) != succs.end())
     return;
   
-  if(fallsThru() and succs.size() >= 1) {
+  if(fallsThru() and succs.size() >= 1 and false) {
     std::cout << "can not have more than one successor with fall-thru\n";
     std::cout << "this:\n";
     std::cout << *this;

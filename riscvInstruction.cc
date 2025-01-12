@@ -258,6 +258,14 @@ class insn_lui : public Insn {
   }  
 };
 
+class insn_nop : public Insn {
+public:
+  insn_nop(uint32_t inst, uint64_t addr) : Insn(inst, addr) {}
+  /* defines nothing */
+  void recDefines(cfgBasicBlock *cBB, regionCFG *cfg) override {}  
+  void hookupRegs(MipsRegTable<ssaInsn> &tbl) override {}
+};
+
 class insn_auipc : public Insn {
  public:
   insn_auipc(uint32_t inst, uint64_t addr) : Insn(inst, addr) {}
@@ -452,8 +460,14 @@ Insn* getInsn(uint32_t inst, uint64_t addr){
       break;
     case 0xf:  /* fence - there's a bunch of 'em */
       return new fenceInsn(inst, addr);
-    case 0x13: /* reg + imm insns */
-      return new iTypeInsn(inst, addr);
+    case 0x13: { /* reg + imm insns */
+      if ( (((inst>>12) & 7) == 0) and (rd == 0)) {
+	return new insn_nop(inst, addr);
+      }
+      else {
+	return new iTypeInsn(inst, addr);
+      }
+    }
     case 0x17: /* auipc */
       return new insn_auipc(inst, addr);
     case 0x1b:

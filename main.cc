@@ -192,7 +192,7 @@ int main(int argc, char *argv[]) {
   }
   
   regions.push_back(r);
-  regionCFG *cfg = new regionCFG(rt.tip, counts, pt.get_records());
+  regionCFG *cfg = new regionCFG(input, rt.tip, counts, pt.get_records() );
   cfg->buildCFG(regions);
   stopCapstone();
 

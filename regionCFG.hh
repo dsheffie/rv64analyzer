@@ -191,6 +191,7 @@ public:
 std::ostream &operator<<(std::ostream &out, const regionCFG &cfg);
 class regionCFG : public execUnit {
 protected:
+  std::string name;
   std::map<int64_t, double> &tip;
   std::map<uint64_t,uint64_t> &counts;
   std::list<pipeline_record> &pt;
@@ -236,7 +237,7 @@ protected:
   void fastDominancePreComputation();
   void insertPhis();
   void getRegDefBlocks();
-  regionCFG(std::map<int64_t, double> &m, std::map<uint64_t,uint64_t> &c, std::list<pipeline_record> &r);
+  regionCFG(std::string name, std::map<int64_t, double> &m, std::map<uint64_t,uint64_t> &c, std::list<pipeline_record> &r);
   ~regionCFG();
   bool buildCFG(std::vector<std::vector<basicBlock*> > &regions);
 

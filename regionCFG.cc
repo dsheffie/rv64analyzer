@@ -446,10 +446,11 @@ bool regionCFG::analyzeGraph() {
   return true;
 }
 
-regionCFG::regionCFG(std::map<int64_t, double> &tip,
+regionCFG::regionCFG(std::string name,
+		     std::map<int64_t, double> &tip,
 		     std::map<uint64_t, uint64_t> &counts,
 		     std::list<pipeline_record> &r) :
-  execUnit(), tip(tip), counts(counts), pt(r) {
+  execUnit(), name(name), tip(tip), counts(counts), pt(r) {
   regionCFGs.insert(this);
   perfectNest = true;
   innerPerfectBlock = 0;
@@ -476,6 +477,11 @@ void regionCFG::insertPhis()  {
   /* if any register is written in the cfg */
   if(not(gprDefinitionBlocks[0].empty())) {
     std::cout << "writing to the zero reg?\n";
+    for(cfgBasicBlock *bb : gprDefinitionBlocks[0]) {
+
+      std::cout << "this block writes zero reg?\n"
+		<< *bb << "\n";
+    }
   }
   //assert(gprDefinitionBlocks[0].empty());
   
@@ -661,7 +667,7 @@ void gprPhiNode::addIncomingEdge(regionCFG *cfg, cfgBasicBlock *b) {
 
 
 void regionCFG::asDot() const {
-  const std::string filename = "cfg_" + toStringHex(head->getEntryAddr()) + ".dot"; 
+  const std::string filename = name + "_cfg_" + toStringHex(head->getEntryAddr()) + ".dot"; 
   std::ofstream out(filename);
   std::set<const basicBlock*> bbs;
   
