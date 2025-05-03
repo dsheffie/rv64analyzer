@@ -731,6 +731,9 @@ void regionCFG::asDot() const {
   /* vertices */
   for(size_t hb = 0; hb < hotblocks.size(); hb++) {
     auto bb = hotblocks.at(hb).second;
+    size_t num = bb->getVecIns().size();
+    uint64_t ea = bb->getEntryAddr();    
+    double ipc = (num*counts[ea]) / hotblocks.at(hb).first;
     
     const auto & insns = bb->getVecIns();
     double cycles = 0.0;
@@ -739,11 +742,13 @@ void regionCFG::asDot() const {
       cycles += tip[p.pc];
     }
     
-    uint64_t ea = bb->getEntryAddr();
+
     out << "\"bb" << std::hex << ea << std::dec << "\"[\n";
     out << "label = <bb_0x" << std::hex << ea << std::dec
 	<< ", count " << counts[ea]
 	<< ", cycles " << cycles
+	<< std::fixed << std::setprecision(2)
+	<< ", ipc " << ipc
 	<< ", hot " << hb
 	<< " : " << "<BR align='left'/>";
     for(ssize_t i = 0, ni = insns.size(); i < ni; i++) {
