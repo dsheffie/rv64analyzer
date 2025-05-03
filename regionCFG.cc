@@ -729,7 +729,9 @@ void regionCFG::asDot() const {
   
   out << "digraph G {\n";
   /* vertices */
-  for(const auto bb : bbs) {
+  for(size_t hb = 0; hb < hotblocks.size(); hb++) {
+    auto bb = hotblocks.at(hb).second;
+    
     const auto & insns = bb->getVecIns();
     double cycles = 0.0;
     for(ssize_t i = 0, ni = insns.size(); i < ni; i++) {
@@ -742,6 +744,7 @@ void regionCFG::asDot() const {
     out << "label = <bb_0x" << std::hex << ea << std::dec
 	<< ", count " << counts[ea]
 	<< ", cycles " << cycles
+	<< ", hot " << hb
 	<< " : " << "<BR align='left'/>";
     for(ssize_t i = 0, ni = insns.size(); i < ni; i++) {
       const auto &p = insns.at(i);

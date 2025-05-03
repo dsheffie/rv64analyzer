@@ -3,13 +3,6 @@ LIBS =  $(EXTRA_LD) -lpthread
 ifeq ($(UNAME_S),Linux)
      CXX = g++ -fomit-frame-pointer
      EXTRA_LD = -lboost_program_options -lboost_serialization -lunwind -lcapstone
-     DL = -Wl,--export-dynamic 
-endif
-
-ifeq ($(UNAME_S),FreeBSD)
-     CXX = clang++ -march=native -fomit-frame-pointer -flto
-     EXTRA_LD = -L/usr/local/lib -lboost_program_options -lboost_serialization  -lunwind -lcapstone
-     DL = -Wl,--export-dynamic 
 endif
 
 ifeq ($(UNAME_S),Darwin)
@@ -18,7 +11,7 @@ ifeq ($(UNAME_S),Darwin)
 endif
 
 
-OPT = -g -O0 -Wall -Wpedantic -Wextra -Wno-unused-parameter
+OPT = -g -O3 -Wall -Wpedantic -Wextra -Wno-unused-parameter
 CXXFLAGS = -std=c++17 -g $(OPT)
 
 EXE = perf_analyzer
@@ -30,7 +23,7 @@ DEP = $(OBJ:.o=.d)
 all: $(EXE)
 
 $(EXE) : $(OBJ)
-	$(CXX) $(CXXFLAGS) $(OBJ) $(LIBS) $(DL) -o $(EXE)
+	$(CXX) $(CXXFLAGS) $(OBJ) $(LIBS) -o $(EXE)
 
 githash.cc : .git/HEAD .git/index
 	echo "const char *githash = \"$(shell git rev-parse HEAD)\";" > $@

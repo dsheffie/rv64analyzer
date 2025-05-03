@@ -68,6 +68,44 @@ void execRiscv(uint32_t inst, uint64_t pc, uint64_t npc, uint64_t vpc) {
       getNextBlock(npc);
       break;
     }
+    case 0x73: { /* system instructions */
+      uint32_t csr_id = (inst>>20);
+      bool is_ecall = ((inst >> 7) == 0);
+      bool is_ebreak = ((inst>>7) == 0x2000);
+      bool bits19to7z = (((inst >> 7) & 8191) == 0);
+      uint64_t upper7 = (inst>>25);
+      bool is_cflow = false;
+      if(is_ecall) {
+	is_cflow = true;
+      }
+      else if(upper7 == 9 && ((inst & (16384-1)) == 0x73 )) { /* sfence */
+	is_cflow = false;
+      }
+      else if(bits19to7z and (csr_id == 0x105)) {  /* wfi */
+	is_cflow = false;
+      }
+      else if(bits19to7z and (csr_id == 0x002)) {  /* uret */
+	is_cflow = true;
+      }
+      else if(bits19to7z and (csr_id == 0x102)) {  /* sret */
+	is_cflow = true;
+      }
+      else if(bits19to7z and (csr_id == 0x202)) { /* hret */
+	is_cflow = true;
+      }
+      else if(bits19to7z and (csr_id == 0x302)) {  /* mret */
+	is_cflow = true;
+      }
+      else if(is_ebreak) {
+	is_cflow = true;
+      }
+
+      if(is_cflow) {
+	globals::cBB->setTermAddr(pc);
+	getNextBlock(npc);
+      }
+      break;
+    }
     default:
       break;
     }
@@ -84,15 +122,16 @@ void buildCFG(const std::list<inst_record> &trace, std::map<uint64_t,uint64_t> &
       basicBlock::globalEdges[ir.pc][npc]++;
     }
     counts[ir.pc]++;
-    // if(ir.pc == 0x8a7de5ecUL) {
-    //   printf("%lx %s -> %lx (cbb %lx, term %lx, read only %d)\n",
-    // 	     ir.pc,
-    // 	     getAsmString(ir.inst, ir.pc).c_str(),
-    // 	     npc,
-    // 	     globals::cBB->getEntryAddr(),
-    // 	     globals::cBB->getTermAddr(),
-    // 	     globals::cBB->isReadOnly()
-    // 	     );
+#if 0    
+       printf("%lx %s -> %lx (cbb %lx, term %lx, read only %d)\n",
+     	     ir.pc,
+     	     getAsmString(ir.inst, ir.pc).c_str(),
+     	     npc,
+     	     globals::cBB->getEntryAddr(),
+     	     globals::cBB->getTermAddr(),
+     	     globals::cBB->isReadOnly()
+     	     );
+#endif
     // }
     
     if( not(globals::cBB->isReadOnly()) ) {
