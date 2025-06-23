@@ -317,15 +317,17 @@ bool regionCFG::buildCFG(std::vector<std::vector<basicBlock*> > &regions) {
   std::set<basicBlock*> seen;
   
   currCFG = this;
-
+  size_t maxInsnInBB = 0;
   for(size_t i = 0, n = regions.size(); i < n; i++) {
     heads.insert(regions[i][0]);
     for(size_t j = 0, nn=regions[i].size(); j < nn; j++) {
       basicBlock *bb = regions[i][j];
       if(bb==nullptr) die();
       blocks.insert(bb);
+      maxInsnInBB = std::max(maxInsnInBB, bb->getNumIns());
     }
   }
+  std::cout << maxInsnInBB << " max instructions in a bb\n";
 
   
   if(heads.size()!=1) {
