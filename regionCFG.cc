@@ -16,10 +16,16 @@
 
 static regionCFG *currCFG = nullptr;
 
-static void read_template(std::list<std::string> &pre, std::list<std::string> &post) {
+static void read_template(std::list<std::string> &pre,
+			  std::list<std::string> &post) {
   std::string line;
-  std::fstream in("traceTemplate.html");
   bool use_pre = true;
+  std::fstream in(globals::templatePath + "/traceTemplate.html");
+  if(not(in.good())) {
+    std::cerr << "could not load trace template\n";
+    return;
+  }
+
   //var tableData = {}
   while(getline(in, line)) {
     if(std::regex_search(line, std::regex("var tableData"))) {

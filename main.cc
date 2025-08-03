@@ -7,10 +7,7 @@
 #include <boost/program_options.hpp>
 
 #include <unistd.h>
-#include <sys/mman.h>
-#include <signal.h>
-#include <fenv.h>
-#include <setjmp.h>
+#include <libgen.h>
 
 #include "helper.hh"
 #include "disassemble.hh"
@@ -20,9 +17,8 @@
 #include "inst_record.hh"
 #include "pipeline_record.hh"
 
-extern const char* githash;
-
 namespace globals {
+  std::string templatePath;
   basicBlock *cBB = nullptr;
   execUnit *currUnit = nullptr;
   bool enableCFG = true;
@@ -175,6 +171,11 @@ int main(int argc, char *argv[]) {
   pipeline_reader pt;
   std::string input, pipe;
   std::map<uint64_t,uint64_t> counts;
+
+  char *rp = realpath(argv[0], nullptr);
+  globals::templatePath = std::string(dirname(rp));
+  free(rp);
+  
   try {
     po::options_description desc("Options");
     desc.add_options() 

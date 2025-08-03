@@ -11,6 +11,7 @@ class basicBlock;
 class execUnit;
 
 namespace globals {
+  extern std::string templatePath;
   extern region *regionFinder;
   extern basicBlock *cBB;
   extern execUnit *currUnit;
