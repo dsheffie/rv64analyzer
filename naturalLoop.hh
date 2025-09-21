@@ -18,14 +18,10 @@ public:
   void addChild(naturalLoop *l) {
     children.push_back(l);
   }
-  void print() {
-    printf("%s ", head->getName().c_str());
-    for(cfgBasicBlock *blk : loop) {
-      if(blk != head) printf("%s ", blk->getName().c_str());
-    }
-    printf("\n");
-  }
+  void print() const;
   bool isNestedLoop(const naturalLoop &other) const;
+  bool isSameLoop(const naturalLoop &other) const;
+  
   bool operator<(const naturalLoop &other) const {
     return loop.size() < other.loop.size();
   }

@@ -896,17 +896,6 @@ void regionCFG::findLoop(std::set<cfgBasicBlock*> &loop,
   }
 }
 
-/* is other in loop? */
-bool naturalLoop::isNestedLoop(const naturalLoop &other) const {
-  for(auto bb : other.loop) {
-    if(loop.find(bb) == loop.end()) {
-      return false;
-    }
-  }
-  return true;
-}
-
-
 void regionCFG::findNaturalLoops() {
   
   for(cfgBasicBlock *lbb : cfgBlocks) {
