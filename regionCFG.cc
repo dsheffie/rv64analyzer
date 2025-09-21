@@ -9,6 +9,7 @@
 #include <fcntl.h>
 
 #include "regionCFG.hh"
+#include "naturalLoop.hh"
 #include "helper.hh"
 #include "disassemble.hh"
 #include "globals.hh"
@@ -895,10 +896,19 @@ void regionCFG::findLoop(std::set<cfgBasicBlock*> &loop,
   }
 }
 
+/* is other in loop? */
+bool naturalLoop::isNestedLoop(const naturalLoop &other) const {
+  for(auto bb : other.loop) {
+    if(loop.find(bb) == loop.end()) {
+      return false;
+    }
+  }
+  return true;
+}
+
 
 void regionCFG::findNaturalLoops() {
-  std::vector<naturalLoop> loops;
-  std::map<cfgBasicBlock*, std::vector<naturalLoop> >loopHeadMap;
+  
   for(cfgBasicBlock *lbb : cfgBlocks) {
     for(cfgBasicBlock *hbb : lbb->succs) {
       if(dominates(hbb, lbb)) {
@@ -907,108 +917,37 @@ void regionCFG::findNaturalLoops() {
 	stack.push_front(lbb);
 	/* BFS on preds to find natural loops */
 	findLoop(loop, stack, hbb);
-	naturalLoop l(hbb,loop);
-	//loops.push_back(l);
-	loopHeadMap[hbb].push_back(l);
+	naturalLoop *l = new naturalLoop(hbb,loop);
+	loops.push_back(l);
       }
     }
   }
 
-  for(std::map<cfgBasicBlock*, std::vector<naturalLoop> >::iterator mit = loopHeadMap.begin();
-      mit != loopHeadMap.end(); mit++) {
-    cfgBasicBlock *hbb = mit->first;
-    std::set<cfgBasicBlock*> loop;
-    if(mit->second.size() > 1)
-      perfectNest = false;
-    for(std::vector<naturalLoop>::iterator vit = mit->second.begin(); vit != mit->second.end(); vit++) {
-      for(auto cfgbb : vit->getLoop()) {
-	loop.insert(cfgbb);
-      }
-    }
-    naturalLoop l(hbb,loop);
-    loops.push_back(l);
-  }
   if(loops.empty())
     return;
   
   std::sort(loops.begin(), loops.end(), sortNaturalLoops());
+  std::vector<naturalLoop*> nestedLoops = loops;
 
-  std::vector<std::vector<size_t> > nests(loops.size());
-  std::vector<int> depths(loops.size());
-  std::fill(depths.begin(), depths.end(), 0);
-
-  /* Building subset matrix */
-  for(ssize_t i = loops.size()-1; i >= 0; i--) {
-    for(ssize_t j = i - 1; j >= 0; j--) {
-      /* Is loop i nested in loop(nest) j? */
-      if(loops[i].isNestedLoop(loops[j])){
-	nests[j].push_back(i);
-	break;
+  for(ssize_t i = 0, nl = nestedLoops.size(); i < nl; i++) {
+    naturalLoop *a = nestedLoops.at(i);
+    for(ssize_t j = i+1; j < nl; j++) {
+      naturalLoop *b = nestedLoops.at(j);
+      if(b->isNestedLoop(*a)) {
+	assert(a != b);
+	printf("found nesting big loop size %lu, little loop size %lu, head pc %lx, tail pc %lx\n",
+	       a->size(),
+	       b->size(),
+	       a->headPC(),
+	       b->headPC()
+	       );
+	return;
       }
     }
   }
-
-  //for(size_t i = 0; i < nests.size(); i++) {
-  //printf("nest %zu: ", i);
-  // for(size_t j = 0; j < nests[i].size(); j++) {
-  //  printf("%zu ", nests[i][j]);
-  // }
-  // printf("\n");
-  //}
   
-  /* Traverse nesting tree using BFS 
-   * to find max depth */
-  std::queue<std::pair<size_t, int> > q;
-  q.push(std::pair<size_t,int>(0,1));
-  int maxDepth = 1;
-  while(!q.empty()) {
-    std::pair<size_t, int> p= q.front();
-    /* assign loop to proper depth */
-    depths[p.first] = p.second;
-    q.pop();
-    for(size_t i = 0; i < nests[p.first].size(); i++) {
-      int d = p.second+1;
-      maxDepth = std::max(maxDepth, d);
-      std::pair<size_t,int> pp(nests[p.first][i], d);
-      q.push(pp);
-    }
-  }
-
   
-  //for(size_t i = 0; i < nests.size(); i++) {
-  // printf("nest (depth=%d) %zu: ", i, depths[i]);
-  //for(size_t j = 0; j < nests[i].size(); j++) {
-  //  printf("%zu ", nests[i][j]);
-  // }
-  // printf("\n");
-  //}
-
-
-
-  /*printf("maxDepth = %d\n", maxDepth); */
-  std::vector< std::vector<naturalLoop> > loopN(maxDepth+1);
-  
-  for(size_t i = 0; i < loops.size(); i++) {
-    int d = depths[i];
-    loopN[d].push_back(loops[i]);
-  }
-  
-
-  for(size_t i = 1; i < loopN.size(); i++) {
-    perfectNest &= (loopN[i].size()==1);
-  }
-
-  //for(size_t i = 1; i < loopN.size(); i++) {
-  // printf("%zu\n", loopN[i].size());
-  // for(size_t j = 0; j < loopN[i].size(); j++) {
-  //   printf("depth %zu : ", i); loopN[i][j].print();
-  // }
-  //}
-
-  //printf("head %x %s a perfect nest\n", 
-  //head->getEntryAddr(), perfectNest ? "is" : "isnt" );
-    
-  loopNesting = loopN;
+  std::cout << "found " << loops.size() << " loops\n";
 }
  
 uint64_t regionCFG::getEntryAddr() const {

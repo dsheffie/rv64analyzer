@@ -20,7 +20,7 @@
 class regionCFG;
 class Insn;
 class cfgBasicBlock;
-
+class naturalLoop;
 
 class phiNode : public ssaInsn {
  protected:
@@ -147,46 +147,7 @@ class cfgBasicBlock {
   bool dominates(const cfgBasicBlock *B) const;
 };
 
-class naturalLoop {
-private:
-  friend class sortNaturalLoops;
-  cfgBasicBlock *head;
-  std::set<cfgBasicBlock*> loop;
-public:
-  naturalLoop(cfgBasicBlock *head, std::set<cfgBasicBlock*> loop) :
-    head(head), loop(loop) {}
-  bool inSingleBlockLoop(cfgBasicBlock *blk) {
-    if(loop.size() != 1)
-      return false;
-    return (head == blk);
-  }
-  void print() {
-    printf("%s ", head->getName().c_str());
-    for(cfgBasicBlock *blk : loop) {
-      if(blk != head) printf("%s ", blk->getName().c_str());
-    }
-    printf("\n");
-  }
-  bool isNestedLoop(naturalLoop &other) {
-    /* Does the head of loop "other" dominate the head 
-     * of this loop */
-    return head->dominates(other.head);
-  }
-  bool operator<(const naturalLoop &other) const {
-    return loop.size() < other.loop.size();
-  }
-  const std::set<cfgBasicBlock*> &getLoop() const {
-    return loop;
-  }
-};
 
-class sortNaturalLoops {
-public:
-  bool operator() (const naturalLoop &lhs, 
-		   const naturalLoop &rhs) const {
-    return lhs.loop.size() > rhs.loop.size();
-  }
-};
 
 std::ostream &operator<<(std::ostream &out, const regionCFG &cfg);
 class regionCFG : public execUnit {
@@ -195,7 +156,7 @@ protected:
   std::map<int64_t, double> &tip;
   std::map<uint64_t,uint64_t> &counts;
   std::list<pipeline_record> &pt;
-  
+  std::vector<naturalLoop*> loops;
   /* to be constructor list initialized */
   basicBlock *head = nullptr;
   cfgBasicBlock *cfgHead = nullptr;
@@ -237,7 +198,8 @@ protected:
   void fastDominancePreComputation();
   void insertPhis();
   void getRegDefBlocks();
-  regionCFG(std::string name, std::map<int64_t, double> &m, std::map<uint64_t,uint64_t> &c, std::list<pipeline_record> &r);
+  regionCFG(std::string name, std::map<int64_t, double> &m,
+	    std::map<uint64_t,uint64_t> &c, std::list<pipeline_record> &r);
   ~regionCFG();
   bool buildCFG(std::vector<std::vector<basicBlock*> > &regions);
 
