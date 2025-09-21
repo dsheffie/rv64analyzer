@@ -472,12 +472,17 @@ regionCFG::regionCFG(std::string name,
   validDominanceAcceleration = false;
 }
 regionCFG::~regionCFG() {
+  for(naturalLoop *l : loops) {
+    delete l;
+  }
   regionCFGs.erase(regionCFGs.find(this));
   
   for(auto cblk : cfgBlocks) {
     delete cblk;
   }
   cfgBlocks.clear();
+
+  
 }
 
  
@@ -709,6 +714,7 @@ void regionCFG::asDot() const {
   std::sort(hotblocks.begin(), hotblocks.end());
   std::reverse(hotblocks.begin(), hotblocks.end());
 
+
   std::cout << "hottest blocks\n";
   bool gotpt = not(pt.empty());
   for(size_t i = 0, l = hotblocks.size(); i < std::min(10UL, l); i++) {
@@ -897,16 +903,29 @@ void regionCFG::findLoop(std::set<cfgBasicBlock*> &loop,
 }
 
 void regionCFG::findNaturalLoops() {
-  
+  assert(loops.size() == 0);
   for(cfgBasicBlock *lbb : cfgBlocks) {
     for(cfgBasicBlock *hbb : lbb->succs) {
       if(dominates(hbb, lbb)) {
+	//std::cout << "loop backedge in bb " << lbb->getName() << " head in " << hbb->getName() << "\n";
 	std::set<cfgBasicBlock*> loop;
 	std::list<cfgBasicBlock*> stack;
 	stack.push_front(lbb);
 	/* BFS on preds to find natural loops */
 	findLoop(loop, stack, hbb);
-	naturalLoop *l = new naturalLoop(hbb,loop);
+	bool badInsn = false;
+	for(auto bb : loop) {
+	  if(bb->has_jal_jr_jalr()) {
+	    badInsn = true;
+	    break;
+	  }
+	}
+	
+	if(badInsn or (loop.size() > 63)) {
+	  continue;
+	}
+	
+	naturalLoop *l = new naturalLoop(hbb,lbb,loop);
 	loops.push_back(l);
       }
     }
@@ -915,28 +934,57 @@ void regionCFG::findNaturalLoops() {
   if(loops.empty())
     return;
   
-  std::sort(loops.begin(), loops.end(), sortNaturalLoops());
-  std::vector<naturalLoop*> nestedLoops = loops;
 
-  for(ssize_t i = 0, nl = nestedLoops.size(); i < nl; i++) {
-    naturalLoop *a = nestedLoops.at(i);
-    for(ssize_t j = i+1; j < nl; j++) {
-      naturalLoop *b = nestedLoops.at(j);
-      if(b->isNestedLoop(*a)) {
-	assert(a != b);
-	printf("found nesting big loop size %lu, little loop size %lu, head pc %lx, tail pc %lx\n",
-	       a->size(),
-	       b->size(),
-	       a->headPC(),
-	       b->headPC()
-	       );
-	return;
+  nestedLoops = loops;
+  
+  //use idom?
+
+  bool changed = true;
+  int updates = 0;
+
+  std::cout << "found " << nestedLoops.size() << " loops\n";  
+  
+  while(changed) {
+    std::sort(nestedLoops.begin(), nestedLoops.end(), sortNaturalLoops());  
+    std::reverse(nestedLoops.begin(), nestedLoops.end());
+    changed = false;
+    for(ssize_t i = 0, nl = nestedLoops.size(); i < nl; i++) {
+      naturalLoop *a = nestedLoops.at(i);
+      for(ssize_t j = i+1; j < nl; j++) {
+	naturalLoop *b = nestedLoops.at(j);
+	assert(not(a->isSameLoop(*b)));
+	assert(a->size() <= b->size());
+	if(b->isNestedLoop(*a)) {
+#if 1
+	  printf("found nesting a size %lu, b size %lu, a head pc %lx, b head pc %lx, a immed dom %lx\n",
+		 a->size(),
+		 b->size(),
+		 a->headPC(),
+		 b->headPC(),
+		 a->getHead()->getIdom()->getEntryAddr()
+		 );
+#endif
+	  b->addChild(a);
+	  nestedLoops.erase(nestedLoops.begin() + i);
+	  changed = true;
+	  ++updates;
+	  break;
+	}
+      }
+      if(changed) {
+	break;
       }
     }
   }
   
+  std::cout << "found " << nestedLoops.size() << " loops\n";
+  for(auto l : nestedLoops) {
+    printf("loop with latch %lx, %g cycles\n",
+	   l->getLatch()->getEntryAddr(),
+	   l->computeTipCycles());
+  }
   
-  std::cout << "found " << loops.size() << " loops\n";
+  
 }
  
 uint64_t regionCFG::getEntryAddr() const {

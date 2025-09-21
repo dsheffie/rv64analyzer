@@ -90,7 +90,7 @@ class cfgBasicBlock {
 
   void addPhiNode(gprPhiNode *phi);
   void addWithInCFGEdges(regionCFG *cfg);
-  bool has_jr_jalr();
+  bool has_jal_jr_jalr();
   bool hasFloatingPoint(uint32_t *typeCnts) const;
   void print();
   uint64_t getExitAddr() const;
@@ -107,6 +107,8 @@ class cfgBasicBlock {
   void delSuccessor(cfgBasicBlock *s);
   cfgBasicBlock(basicBlock *bb);
   ~cfgBasicBlock();
+  double computeTipCycles() const;
+  
   const std::set<cfgBasicBlock*> &getPreds() const {
     return preds;
   }
@@ -156,7 +158,7 @@ protected:
   std::map<int64_t, double> &tip;
   std::map<uint64_t,uint64_t> &counts;
   std::list<pipeline_record> &pt;
-  std::vector<naturalLoop*> loops;
+  std::vector<naturalLoop*> loops,nestedLoops;
   /* to be constructor list initialized */
   basicBlock *head = nullptr;
   cfgBasicBlock *cfgHead = nullptr;

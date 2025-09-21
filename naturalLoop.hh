@@ -4,12 +4,12 @@
 class naturalLoop {
 private:
   friend class sortNaturalLoops;
-  cfgBasicBlock *head;
+  cfgBasicBlock *head, *latch;
   std::set<cfgBasicBlock*> loop;
   std::list<naturalLoop*> children;
 public:
-  naturalLoop(cfgBasicBlock *head, std::set<cfgBasicBlock*> loop) :
-    head(head), loop(loop) {}
+  naturalLoop(cfgBasicBlock *head, cfgBasicBlock *latch, std::set<cfgBasicBlock*> loop) :
+    head(head), latch(latch), loop(loop) {}
   bool inSingleBlockLoop(cfgBasicBlock *blk) {
     if(loop.size() != 1)
       return false;
@@ -17,11 +17,7 @@ public:
   }
   void addChild(naturalLoop *l) {
     children.push_back(l);
-  }
-  void print() const;
-  bool isNestedLoop(const naturalLoop &other) const;
-  bool isSameLoop(const naturalLoop &other) const;
-  
+  }  
   bool operator<(const naturalLoop &other) const {
     return loop.size() < other.loop.size();
   }
@@ -31,9 +27,19 @@ public:
   uint64_t headPC() const {
     return head->getEntryAddr();
   }
+  cfgBasicBlock* getHead() const {
+    return head;
+  }
+  cfgBasicBlock* getLatch() const {
+    return latch;
+  }
   size_t size() const {
     return loop.size();
   }
+  double computeTipCycles() const;
+  void print() const;
+  bool isNestedLoop(const naturalLoop &other) const;
+  bool isSameLoop(const naturalLoop &other) const;
 };
 
 class sortNaturalLoops {

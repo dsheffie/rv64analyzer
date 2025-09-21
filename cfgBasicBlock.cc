@@ -124,13 +124,15 @@ void cfgBasicBlock::addPhiNode(gprPhiNode *phi) {
   }
 }
 
-bool cfgBasicBlock::has_jr_jalr() {
+bool cfgBasicBlock::has_jal_jr_jalr() {
   for(size_t i = 0; i < insns.size(); i++) {
     Insn *ins = insns[i];
     if(dynamic_cast<insn_jr*>(ins))
       return true;
     if(dynamic_cast<insn_jalr*>(ins))
       return true;
+    if(dynamic_cast<insn_jal*>(ins))
+      return true;    
   }
   return false;
 }
@@ -331,4 +333,10 @@ uint64_t cfgBasicBlock::getEntryAddr() const {
     return bb->getEntryAddr();
   }
   return ~(0UL);
+}
+
+
+double cfgBasicBlock::computeTipCycles() const {
+  if(bb==nullptr) return 0.0;
+  return bb->getTipCycles();
 }

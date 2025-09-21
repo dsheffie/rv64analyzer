@@ -2,9 +2,9 @@
 #include "naturalLoop.hh"
 
 void naturalLoop::print() const {
-  printf("%s ", head->getName().c_str());
+  printf("loop head %s\n", head->getName().c_str());
   for(cfgBasicBlock *blk : loop) {
-    if(blk != head) printf("%s ", blk->getName().c_str());
+    if(blk != head) printf("\t%s\n", blk->getName().c_str());
   }
   printf("\n");
 }
@@ -29,4 +29,12 @@ bool naturalLoop::isSameLoop(const naturalLoop &other) const {
     }
   }
   return true;
+}
+
+double naturalLoop::computeTipCycles() const {
+  double c = 0.0;
+  for(auto bb : loop) {
+    c += bb->computeTipCycles();
+  }
+  return c;
 }
