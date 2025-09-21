@@ -257,6 +257,7 @@ protected:
   uint64_t countInsns() const;
   uint64_t countBBs() const;
   uint64_t numBBInCommon(const regionCFG &other) const;
+  double getTipCycles(uint64_t ip) const;
 };
 
 #endif

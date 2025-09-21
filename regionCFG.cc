@@ -360,6 +360,7 @@ bool regionCFG::buildCFG(std::vector<std::vector<basicBlock*> > &regions) {
   std::sort(blockvec.begin(), blockvec.end(), sortByIcnt<basicBlock*>());
    
   for(auto bb : blocks) {
+    bb->cfgCplr = this;
     assert(bb->sanityCheck());
   }  
   
@@ -673,6 +674,14 @@ void gprPhiNode::addIncomingEdge(regionCFG *cfg, cfgBasicBlock *b) {
   inBoundEdges.emplace_back(b, in);
 }
 
+double regionCFG::getTipCycles(uint64_t ip) const {
+  auto it = tip.find(ip);
+  if(it != tip.end()) {
+    return it->second;
+  }
+  //std::cout << "couldnt find tip info for ip " << std::hex << ip << std::dec << "\n";
+  return 0.0;
+}
 
 void regionCFG::asDot() const {
   const std::string filename = name + "_cfg_" + toStringHex(head->getEntryAddr()) + ".dot"; 

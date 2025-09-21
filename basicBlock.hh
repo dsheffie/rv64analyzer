@@ -140,7 +140,7 @@ public:
     cfgInRegions.insert(bb);
   }
   bool sanityCheck();
-  
+  double getTipCycles() const;
   static void toposort(basicBlock *src, const std::set<basicBlock*> &valid, std::list<basicBlock*> &ordered);
 };
 

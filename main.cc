@@ -42,7 +42,7 @@ static void getNextBlock(uint64_t pc) {
   globals::cBB = nBB;
 }
 
-void execRiscv(uint32_t inst, uint64_t pc, uint64_t npc, uint64_t vpc) {
+static void translateRiscv(uint32_t inst, uint64_t pc, uint64_t npc, uint64_t vpc) {
   globals::cBB->addIns(inst, pc, vpc);
   uint32_t opcode = inst & 127;
   switch(opcode)
@@ -149,7 +149,7 @@ void buildCFG(const std::list<inst_record> &trace, std::map<uint64_t,uint64_t> &
 	       );
 	//abort();
       }
-      execRiscv(ir.inst, ir.pc, npc, ir.vpc);
+      translateRiscv(ir.inst, ir.pc, npc, ir.vpc);
     }
     else if(ir.pc == globals::cBB->getTermAddr()) {
       auto nbb = globals::cBB->findBlock(npc);
@@ -221,19 +221,23 @@ int main(int argc, char *argv[]) {
   }
   
   
-  std::ofstream out("blocks.txt");
+
   std::vector<std::vector<basicBlock*>> regions;
   std::vector<basicBlock*> r;
 
   //create region
   for(auto p : basicBlock::bbMap) {
-    out << *(p.second) << "\n";
     r.push_back(p.second);
   }
   
   regions.push_back(r);
   regionCFG *cfg = new regionCFG(input, rt.tip, counts, pt.get_records() );
   cfg->buildCFG(regions);
+
+  std::ofstream out("blocks.txt");
+  for(auto p : basicBlock::bbMap) {
+    out << *(p.second) << "\n";
+  }  
   stopCapstone();
 
   return 0;

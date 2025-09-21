@@ -294,18 +294,34 @@ ssize_t basicBlock::sizeInBytes() const {
 }
 
 void basicBlock::print() const {
-  std::cerr << *this;
+  std::cout << *this;
+}
+
+double basicBlock::getTipCycles() const {
+  if(cfgCplr == nullptr) {
+    return 0.0;
+  }
+  
+  double c = 0.0;
+  for(size_t i = 0, l = vecIns.size(); i < l; i++){
+    uint64_t addr = entryAddr + i*4;
+    c += cfgCplr->getTipCycles(addr);
+  }
+  return c;
 }
 
 std::ostream &operator<<(std::ostream &out, const basicBlock &bb) {
   using namespace std;
+  
   out << "block  @" << hex << bb.entryAddr << dec 
-      << "(cnt = " << bb.inscnt << "),"
+      << "cnt = " << bb.inscnt << ","
+      << "cycles = " << bb.getTipCycles() << ","
       << "readOnly = " << bb.readOnly << "," 
       << "succs = " << bb.succs.size() << ","
       << "preds = " << bb.preds.size()
       << endl;
-    
+
+  //bb->cfgCplr
   for(size_t i = 0; i < bb.vecIns.size(); i++){
     uint32_t inst = bb.vecIns[i].inst;
     uint64_t addr = bb.entryAddr + i*4;
