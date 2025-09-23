@@ -144,7 +144,7 @@ class cfgBasicBlock {
   }
   bool fastDominates(const cfgBasicBlock *B) const {
     /* Appel exercise 19.1 - constant time dominance */
-    return  (this==B) || ((dt_dfn  < B->dt_dfn) && (dt_max_ancestor_dfn >= B->dt_dfn));
+    return  (this==B) or ((dt_dfn  < B->dt_dfn) and (dt_max_ancestor_dfn >= B->dt_dfn));
   }
   bool dominates(const cfgBasicBlock *B) const;
 };

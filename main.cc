@@ -208,7 +208,8 @@ int main(int argc, char *argv[]) {
 
   std::cout << "rt.get_records().size() = " <<
     rt.get_records().size() << "\n";
-  
+
+  std::cout << "tip cycles = " << tip_cycles << "\n";
 
   globals::cBB = new basicBlock(rt.get_records().begin()->pc);
   buildCFG(rt.get_records(), counts);
