@@ -818,7 +818,7 @@ void regionCFG::asDot() const {
 
   for(size_t l_id = 0, n_loops = loops.size(); l_id < n_loops; l_id++) {
     const auto *l = loops.at(l_id);
-    out << "subgraph loop_" << l_id << "{\n";
+    out << "subgraph cluster_" << l_id << "{\n";
     out << "label = \"loop_" << l_id << "\"\n";
     for(const auto *bb : l->getLoop()) {
       out << "\"bb" << std::hex <<  bb->getEntryAddr() <<std::dec << "\"\n";
