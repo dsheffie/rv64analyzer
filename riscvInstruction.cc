@@ -100,6 +100,14 @@ public:
   void hookupRegs(MipsRegTable<ssaInsn> &tbl) override {}
 };
 
+class wfiInsn : public Insn {
+public:
+  wfiInsn(uint32_t inst, uint64_t addr) : Insn(inst, addr) {}
+  void recDefines(cfgBasicBlock *cBB, regionCFG *cfg) override {}
+  void recUses(cfgBasicBlock *cBB) override {}
+  void hookupRegs(MipsRegTable<ssaInsn> &tbl) override {}
+};
+
 class ebreakInsn : public Insn {
 public:
   ebreakInsn(uint32_t inst, uint64_t addr) : Insn(inst, addr) {}
@@ -537,6 +545,7 @@ Insn* getInsn(uint32_t inst, uint64_t addr){
       }
       else if(bits19to7z and (csr_id == 0x105)) {
 	/* wfi */
+	return new wfiInsn(inst, addr);
       }
       else if(bits19to7z and (csr_id == 0x002)) {  /* uret */
 	assert(false);
@@ -577,9 +586,13 @@ Insn* getInsn(uint32_t inst, uint64_t addr){
 	  default:
 	    break;
 	  }
+	std::cout << "very confused at pc " << std::hex << addr << std::dec << "\n";
 	die();	
 	return nullptr;	
       }
+      std::cout << "very confused at pc " << std::hex << addr << ", raw = " << inst << std::dec << "\n";
+      disassemble(std::cout, inst, addr);
+      std::cout << "\n";
       die();
       return nullptr;
     }
