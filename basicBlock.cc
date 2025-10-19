@@ -313,7 +313,7 @@ double basicBlock::getTipCycles() const {
 std::ostream &operator<<(std::ostream &out, const basicBlock &bb) {
   using namespace std;
   
-  out << "block  @" << hex << bb.entryAddr << dec 
+  out << "block 0x" << hex << bb.entryAddr << dec << " "
       << "cnt = " << bb.inscnt << ","
       << "cycles = " << bb.getTipCycles() << ","
       << "readOnly = " << bb.readOnly << "," 
@@ -332,13 +332,19 @@ std::ostream &operator<<(std::ostream &out, const basicBlock &bb) {
       exit(-1);
     }
   }
+  //cfgCplr
+  
   out << "successors:";
   for(auto sbb : bb.succs) {
     out << " " << hex << sbb->getEntryAddr() << dec;
   }
   out << "\npredecessors:";
   for(auto pbb : bb.preds) {
-    out << " " << hex << pbb->getEntryAddr() << dec;
+    uint64_t t = pbb->getTermAddr();
+    uint64_t e = bb.getEntryAddr();
+    uint64_t w = basicBlock::globalEdges[t][e];    
+    out << " " << hex << pbb->getEntryAddr() << dec << "(" << w << ")";
+    
   }
   out << "\nterminal addr = " << hex 
       << bb.termAddr << dec << endl;
