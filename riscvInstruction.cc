@@ -92,6 +92,15 @@ public:
   void hookupRegs(MipsRegTable<ssaInsn> &tbl) override {}
 };
 
+class mretInsn : public Insn {
+public:
+  mretInsn(uint32_t inst, uint64_t addr) : Insn(inst, addr) {}
+  void recDefines(cfgBasicBlock *cBB, regionCFG *cfg) override {}
+  void recUses(cfgBasicBlock *cBB) override {}
+  void hookupRegs(MipsRegTable<ssaInsn> &tbl) override {}
+};
+
+
 class sfenceInsn : public Insn {
 public:
   sfenceInsn(uint32_t inst, uint64_t addr) : Insn(inst, addr) {}
@@ -557,7 +566,7 @@ Insn* getInsn(uint32_t inst, uint64_t addr){
 	die();
       }            
       else if(bits19to7z and (csr_id == 0x302)) {  /* mret */
-	die();
+	return new mretInsn(inst, addr);
       }
       else if(is_ebreak) {
 	return new ebreakInsn(inst, addr);
