@@ -210,6 +210,7 @@ protected:
   void dumpRISCV();  
   void print();
   void asDot() const;
+  void asText() const;
   void findLoop(std::set<cfgBasicBlock*> &loop,
 		std::list<cfgBasicBlock*> &stack, 
 		cfgBasicBlock *hbb);

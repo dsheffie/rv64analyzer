@@ -452,6 +452,7 @@ bool regionCFG::analyzeGraph() {
   dumpIR();
   dumpRISCV();
   asDot();
+  asText();
   
   return true;
 }
@@ -688,6 +689,83 @@ double regionCFG::getTipCycles(uint64_t ip) const {
   //std::cout << "couldnt find tip info for ip " << std::hex << ip << std::dec << "\n";
   return 0.0;
 }
+
+
+void regionCFG::asText() const {
+  const std::string filename = name + "_cfg_" + toStringHex(head->getEntryAddr()) + ".txt"; 
+  std::ofstream out(filename);
+  std::set<const basicBlock*> bbs;
+  
+  for(const cfgBasicBlock* cbb : cfgBlocks) {
+    const basicBlock *bb = cbb->bb;
+    if(bb) {
+      bbs.insert(bb);
+    }
+  }
+  double total_cycles = 0.0;
+  std::vector<std::pair<double,  const basicBlock*>> hotblocks;
+  for(const auto bb : bbs) {
+    const auto & insns = bb->getVecIns();
+    double t = 0.0;
+    for(ssize_t i = 0, ni = insns.size(); i < ni; i++) {
+      const auto &p = insns.at(i);
+      t+= tip[p.pc];
+      total_cycles += tip[p.pc];
+    }
+    hotblocks.emplace_back(t, bb);
+  }
+  std::sort(hotblocks.begin(), hotblocks.end());
+  std::reverse(hotblocks.begin(), hotblocks.end());
+
+  for(size_t i = 0, l = hotblocks.size(); i < l; i++) {
+    auto bb = hotblocks.at(i).second;
+    uint64_t ea = bb->getEntryAddr();
+    const auto & insns = bb->getVecIns();    
+    size_t num = insns.size();
+    double ipc = (num*counts[ea]) / hotblocks.at(i).first;    
+    
+    double cycles = 0.0, percent;
+    for(ssize_t i = 0, ni = insns.size(); i < ni; i++) {
+      const auto &p = insns.at(i);
+      cycles += tip[p.pc];
+    }
+    percent = (cycles/total_cycles)*100.0;
+    
+    out << "bb" << std::hex << ea << std::dec
+	<< ", count " << counts[ea]
+	<< ", cycles " << cycles
+	<< std::fixed << std::setprecision(2)
+	<< ", ipc " << ipc
+	<< ", hot " << i
+	<< ", percent " << percent
+	<< " \n";
+    
+    for(ssize_t i = 0, ni = insns.size(); i < ni; i++) {
+      const auto &p = insns.at(i);
+      uint32_t inst = p.inst;
+      uint64_t addr = p.pc;
+      
+      if(tip.find(addr) == tip.end()) {
+	std::cout << "cant find phys addr "<< std::hex << addr
+		  << " virt addr " << p.vpc
+		  << std::dec
+		  << " in the tip map\n";
+      }
+      double cycles = static_cast<double>(tip[addr]) / counts[addr];
+      auto asmString = getAsmString(inst, addr);
+      out << std::hex << p.vpc << std::dec
+	  << " : " << asmString
+	  << ", cycles " << cycles
+	  << "\n";
+    }
+    if(i != (l-1)) {
+      out << "\n";
+    }
+  }
+
+  out.close();
+}
+
 
 void regionCFG::asDot() const {
   const std::string filename = name + "_cfg_" + toStringHex(head->getEntryAddr()) + ".dot"; 
