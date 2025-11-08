@@ -95,6 +95,7 @@ class cfgBasicBlock {
   void print();
   uint64_t getExitAddr() const;
   uint64_t getEntryAddr() const;
+  uint64_t getEntryVirtualAddr() const;  
   std::string getName() const;
 
   void traverseAndRename(regionCFG *cfg);  
@@ -215,6 +216,7 @@ protected:
 		std::list<cfgBasicBlock*> &stack, 
 		cfgBasicBlock *hbb);
   void findNaturalLoops();
+  void printNaturalLoops(int d = 0) const;
   bool dominates(cfgBasicBlock *A, cfgBasicBlock *B) const;
   uint64_t getEntryAddr() const override;
   void info() override;

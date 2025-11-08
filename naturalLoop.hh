@@ -27,6 +27,9 @@ public:
   uint64_t headPC() const {
     return head->getEntryAddr();
   }
+  uint64_t headVPC() const {
+    return head->getEntryVirtualAddr();
+  }  
   cfgBasicBlock* getHead() const {
     return head;
   }
@@ -40,6 +43,7 @@ public:
   void print() const;
   bool isNestedLoop(const naturalLoop &other) const;
   bool isSameLoop(const naturalLoop &other) const;
+  void emitGraphviz(int &l_id, std::ostream &out) const;
 };
 
 class sortNaturalLoops {

@@ -38,3 +38,19 @@ double naturalLoop::computeTipCycles() const {
   }
   return c;
 }
+
+void naturalLoop::emitGraphviz(int &l_id, std::ostream &out) const {
+  out << "subgraph cluster_" << l_id << "{\n";
+  out << "label = \"loop_" << l_id << "\"\n";
+  for(const auto *bb : getLoop()) {
+    out << "\"bb" << std::hex <<  bb->getEntryAddr() <<std::dec << "\"\n";
+  }
+
+  l_id++;
+  for(auto c : children) {
+    c->emitGraphviz(l_id,out);
+  }
+  
+  out << "}\n";
+
+}

@@ -430,6 +430,8 @@ bool regionCFG::analyzeGraph() {
   computeDominanceFrontiers();
   /* search for natural loops */
   findNaturalLoops();
+
+  //printNaturalLoops();
   
   /* "compile" mips instructions into proper class */
   for(size_t i = 0, n = cfgBlocks.size(); i < n; i++) {
@@ -893,15 +895,11 @@ void regionCFG::asDot() const {
 	  << "\n"; 
     }
   }
-
-  for(size_t l_id = 0, n_loops = loops.size(); l_id < n_loops; l_id++) {
-    const auto *l = loops.at(l_id);
-    out << "subgraph cluster_" << l_id << "{\n";
-    out << "label = \"loop_" << l_id << "\"\n";
-    for(const auto *bb : l->getLoop()) {
-      out << "\"bb" << std::hex <<  bb->getEntryAddr() <<std::dec << "\"\n";
-    }
-    out << "}\n";
+  
+  
+  int l_id = 0;
+  for(auto *l : nestedLoops) {
+    l->emitGraphviz(l_id, out);
   }
   
   out << "}\n";
@@ -990,6 +988,17 @@ void regionCFG::findLoop(std::set<cfgBasicBlock*> &loop,
   }
 }
 
+void regionCFG::printNaturalLoops(int d) const {
+  for(size_t l_id = 0, n_loops = loops.size(); l_id < n_loops; l_id++) {
+    const auto *l = loops.at(l_id);
+    std::cout << "subgraph cluster_" << l_id << "\n";
+    for(const auto *bb : l->getLoop()) {
+      std::cout << std::hex <<  bb->getEntryVirtualAddr() <<std::dec << "\n";
+    }
+  }
+}
+
+
 void regionCFG::findNaturalLoops() {
   assert(loops.size() == 0);
   for(cfgBasicBlock *lbb : cfgBlocks) {
@@ -1047,8 +1056,8 @@ void regionCFG::findNaturalLoops() {
 	  printf("found nesting a size %lu, b size %lu, a head pc %lx, b head pc %lx, a immed dom %lx\n",
 		 a->size(),
 		 b->size(),
-		 a->headPC(),
-		 b->headPC(),
+		 a->headVPC(),
+		 b->headVPC(),
 		 a->getHead()->getIdom()->getEntryAddr()
 		 );
 #endif

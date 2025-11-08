@@ -335,6 +335,13 @@ uint64_t cfgBasicBlock::getEntryAddr() const {
   return ~(0UL);
 }
 
+uint64_t cfgBasicBlock::getEntryVirtualAddr() const {
+  if(not(rawInsns.empty())) {
+    return rawInsns.at(0).vpc;
+  }
+  return ~(0UL);
+}
+
 
 double cfgBasicBlock::computeTipCycles() const {
   if(bb==nullptr) return 0.0;
