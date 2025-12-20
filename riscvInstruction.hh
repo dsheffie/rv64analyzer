@@ -85,12 +85,65 @@ public:
 
 
 class rTypeInsn : public Insn {
+protected:
+  enum class subType {unknown,add,mul,sub,div,min,sh2add,xnor,xor_};
+  subType st;
 public:
-  rTypeInsn(uint32_t inst, uint64_t addr, insnDefType insnType = insnDefType::gpr) :
-   Insn(inst, addr, insnType){}
- void recDefines(cfgBasicBlock *cBB, regionCFG *cfg) override;
- void recUses(cfgBasicBlock *cBB) override;
- void hookupRegs(MipsRegTable<ssaInsn> &tbl) override;    
+  rTypeInsn(uint32_t inst, uint64_t addr, insnDefType insnType = insnDefType::gpr, subType st = subType::unknown) :
+    Insn(inst, addr, insnType), st(st) {}
+  void recDefines(cfgBasicBlock *cBB, regionCFG *cfg) override;
+  void recUses(cfgBasicBlock *cBB) override;
+  void hookupRegs(MipsRegTable<ssaInsn> &tbl) override;
+  void dumpSSA(std::ostream &out) const override;  
+};
+
+
+class insn_add : public rTypeInsn  {
+public:
+  insn_add(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::add) {}
+};
+
+class insn_sub : public rTypeInsn  {
+public:
+  insn_sub(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::sub) {}
+};
+
+class insn_mul : public rTypeInsn  {
+public:
+  insn_mul(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::mul) {}
+};
+
+class insn_div : public rTypeInsn  {
+public:
+  insn_div(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::div) {}
+};
+
+class insn_min : public rTypeInsn  {
+public:
+  insn_min(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::min) {}
+};
+
+class insn_sh2add : public rTypeInsn  {
+public:
+  insn_sh2add(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::sh2add) {}
+};
+
+class insn_xnor : public rTypeInsn  {
+public:
+  insn_xnor(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::xnor) {}
+};
+
+class insn_xor : public rTypeInsn  {
+public:
+  insn_xor(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::xor_) {}
 };
 
 

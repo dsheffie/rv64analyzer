@@ -221,8 +221,6 @@ int main(int argc, char *argv[]) {
   if(pipe.size() != 0) {
     pt.read(pipe);
   }
-  
-  
 
   std::vector<std::vector<basicBlock*>> regions;
   std::vector<basicBlock*> r;

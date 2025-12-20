@@ -388,6 +388,46 @@ void rTypeInsn::hookupRegs(MipsRegTable<ssaInsn> &tbl) {
   tbl.gprTbl[r.r.rd] = this;
 }
 
+void rTypeInsn::dumpSSA(std::ostream &out) const {
+  out << getName();
+  
+  out << " <- ";
+  switch(st)
+    {
+    case subType::add:
+      out << "add ";
+      break;
+    case subType::mul:
+      out << "mul ";
+      break;
+    case subType::sub:
+      out << "sub ";
+      break;
+    case subType::div:
+      out << "div ";
+      break;
+    case subType::min:
+      out << "min ";
+      break;      
+    case subType::sh2add:
+      out << "sh2add ";
+      break;
+    case subType::xnor:
+      out << "xnor ";
+      break;      
+    case subType::xor_:
+      out << "xor ";
+      break;
+      
+    default:
+      out << "huh ";
+    }
+  for(auto src : sources) {
+    out << src->getName() << " ";
+  }
+}
+
+
 void insn_jalr::recDefines(cfgBasicBlock *cBB, regionCFG *cfg) {
   cfg->gprDefinitionBlocks[r.r.rd].insert(cBB);
 }
@@ -447,6 +487,54 @@ void insn_jal::hookupRegs(MipsRegTable<ssaInsn> &tbl) {
   tbl.gprTbl[rd] = this;
 }
 
+inline static Insn* decodeRtype(uint32_t inst, uint64_t addr){
+  uint32_t opcode = inst & 127;
+  riscv_t m(inst);
+  
+  if(m.r.rd == 0) {
+    return new insn_nop(inst, addr);
+  }
+  
+  if(opcode == 0x33) {
+    switch(m.r.sel)
+      {
+      case 0x0:
+	if(m.r.special == 0x0) {
+	  return new insn_add(inst, addr);
+	}
+	else if(m.r.special == 0x1) {
+	  return new insn_mul(inst, addr);
+	}
+	else if(m.r.special == 0x20) {
+	  return new insn_sub(inst, addr);
+	}
+	break;
+      case 0x4:
+	if(m.r.special == 0x0) {
+	  return new insn_xor(inst, addr);
+	}
+	else if(m.r.special == 0x1) {
+	  return new insn_div(inst, addr);
+	}
+	else if(m.r.special == 0x5) {
+	  return new insn_min(inst, addr);
+	}
+	else if(m.r.special == 0x10) {
+	  return new insn_sh2add(inst, addr);
+	}
+	else if(m.r.special == 0x20) {
+	  return new insn_xnor(inst, addr);
+	}
+	break;
+      default:
+	break;
+      }
+  }
+  else if(opcode == 0x3b) {
+
+  }
+  return new rTypeInsn(inst, addr);  
+}
 
 
 Insn* getInsn(uint32_t inst, uint64_t addr){
@@ -520,7 +608,7 @@ Insn* getInsn(uint32_t inst, uint64_t addr){
     }
     case 0x33:
     case 0x3b: /* reg + reg insns */
-      return new rTypeInsn(inst, addr);
+      return decodeRtype(inst, addr);
     case 0x63: /* branches */
       switch(m.b.sel)
 	{
