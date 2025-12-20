@@ -41,7 +41,9 @@ void Insn::dumpSSA(std::ostream &out) const {
 class memInsn : public Insn {
 public:
   memInsn(uint32_t inst, uint64_t addr, insnDefType insnType = insnDefType::unknown) : Insn(inst, addr, insnType) {}
-  
+  virtual int64_t computeDisp() const {
+    return 0;
+  }  
 };
 
 
@@ -62,7 +64,18 @@ public:
       addSrc(tbl.gprTbl[r.l.rs1]);
       tbl.gprTbl[r.l.rd] = this;
   }
-  void dumpSSA(std::ostream &out) const override;  
+  void dumpSSA(std::ostream &out) const override;
+  bool isLoad() const override {
+    return true;
+  }
+  int64_t computeDisp() const override {
+    int32_t disp = r.l.imm11_0;
+    if((inst>>31)&1) {
+      disp |= 0xfffff000;
+    }
+    int64_t disp64 = disp;
+    return ((disp64 << 32) >> 32);
+  }
 };
 
 
@@ -84,6 +97,12 @@ public:
       if(r.a.rd != 0) {
 	tbl.gprTbl[r.a.rd] = this;
       }
+  }
+  bool isLoad() const override {
+    return true;
+  }
+  bool isStore() const override {
+    return true;
   }
 };
 
@@ -226,9 +245,15 @@ public:
 
 
 class storeInsn : public memInsn {
+protected:
+  enum class subType {unknown,sb,sh,sw,sd};
+  subType st;
 public:
-  storeInsn(uint32_t inst, uint64_t addr) :
+  storeInsn(uint32_t inst, uint64_t addr, subType st = subType::unknown) :
     memInsn(inst, addr,insnDefType::no_dest) {}
+  bool isStore() const override {
+    return true;
+  }
   void recDefines(cfgBasicBlock *cBB, regionCFG *cfg) override {}
   void recUses(cfgBasicBlock *cBB) override {
     cBB->gprRead[r.s.rs1]=true;
@@ -238,7 +263,13 @@ public:
     addSrc(tbl.gprTbl[r.s.rs1]);
     addSrc(tbl.gprTbl[r.s.rs2]);
   }
-
+  int64_t computeDisp() const override {
+    int32_t disp = r.s.imm4_0 | (r.s.imm11_5 << 5);    
+    disp |= ((inst>>31)&1) ? 0xfffff000 : 0x0;
+    int64_t disp64 = disp;
+    return ((disp64 << 32) >> 32);
+  }  
+  void dumpSSA(std::ostream &out) const override;
 };
 
 
@@ -345,22 +376,22 @@ public:
 
 class insn_sb : public storeInsn {
  public:
- insn_sb(uint32_t inst, uint64_t addr) : storeInsn(inst, addr) {}
+  insn_sb(uint32_t inst, uint64_t addr) : storeInsn(inst, addr, subType::sb) {}
 };
 
 class insn_sh : public storeInsn {
 public:
-  insn_sh(uint32_t inst, uint64_t addr) : storeInsn(inst, addr) {}
+  insn_sh(uint32_t inst, uint64_t addr) : storeInsn(inst, addr, subType::sh) {}
 };
 
 class insn_sw : public storeInsn {
 public:
-  insn_sw(uint32_t inst, uint64_t addr) : storeInsn(inst, addr) {}
+  insn_sw(uint32_t inst, uint64_t addr) : storeInsn(inst, addr, subType::sw) {}
 };
 
 class insn_sd : public storeInsn {
  public:
-  insn_sd(uint32_t inst, uint64_t addr) : storeInsn(inst, addr) {}
+  insn_sd(uint32_t inst, uint64_t addr) : storeInsn(inst, addr, subType::sd) {}
 };
 
 
@@ -1024,5 +1055,31 @@ void loadInsn::dumpSSA(std::ostream &out) const {
     }
   for(auto src : sources) {
     out << src->getName() << " ";
-  }  
+  }
+  out << computeDisp() << " ";
+}
+
+
+void storeInsn::dumpSSA(std::ostream &out) const {
+  switch(st)
+    {
+    case subType::sb:
+      out << "sb ";
+      break;
+    case subType::sh:
+      out << "sh ";
+      break;
+    case subType::sw:
+      out << "sw ";
+      break;
+    case subType::sd:
+      out << "sd ";
+      break;                              
+    default:
+      break;
+    }
+  for(auto src : sources) {
+    out << src->getName() << " ";
+  }
+  out << computeDisp() << " ";  
 }

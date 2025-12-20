@@ -67,6 +67,12 @@ public:
     die();
   }
   virtual void dumpSSA(std::ostream &out) const {}
+  virtual bool isLoad() const {
+    return false;
+  }
+  virtual bool isStore() const {
+    return false;
+  }    
 };
 
 
