@@ -86,7 +86,10 @@ public:
 
 class rTypeInsn : public Insn {
 protected:
-  enum class subType {unknown,add,mul,sub,div,min,sh2add,xnor,xor_};
+  enum class subType {unknown,add,mul,sub,div,min,sh2add,xnor,xor_,
+		      sll, mulh, rol, slt, sh1add, sltu, mulhu,
+		      srl, divu, minu, czeqz, sra, ror,
+		      or_, rem, max, sh3add, orn};
   subType st;
 public:
   rTypeInsn(uint32_t inst, uint64_t addr, insnDefType insnType = insnDefType::gpr, subType st = subType::unknown) :
@@ -144,6 +147,118 @@ class insn_xor : public rTypeInsn  {
 public:
   insn_xor(uint32_t inst, uint64_t addr) :
     rTypeInsn(inst, addr, insnDefType::gpr, subType::xor_) {}
+};
+
+class insn_sll : public rTypeInsn  {
+public:
+  insn_sll(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::sll) {}
+};
+
+class insn_mulh : public rTypeInsn  {
+public:
+  insn_mulh(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::mulh) {}
+};
+
+class insn_rol : public rTypeInsn  {
+public:
+  insn_rol(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::rol) {}
+};
+
+class insn_sh1add : public rTypeInsn  {
+public:
+  insn_sh1add(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::sh1add) {}
+};
+
+class insn_slt : public rTypeInsn  {
+public:
+  insn_slt(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::slt) {}
+};
+
+class insn_sltu : public rTypeInsn  {
+public:
+  insn_sltu(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::sltu) {}
+};
+
+class insn_mulhu : public rTypeInsn  {
+public:
+  insn_mulhu(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::mulhu) {}
+};
+
+//srl, divu, minu, czeqz, sra, ror,
+
+class insn_srl : public rTypeInsn  {
+public:
+  insn_srl(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::srl) {}
+};
+
+class insn_divu : public rTypeInsn  {
+public:
+  insn_divu(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::divu) {}
+};
+
+class insn_minu : public rTypeInsn  {
+public:
+  insn_minu(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::minu) {}
+};
+
+class insn_czeqz : public rTypeInsn  {
+public:
+  insn_czeqz(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::czeqz) {}
+};
+
+class insn_sra : public rTypeInsn  {
+public:
+  insn_sra(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::sra) {}
+};
+
+class insn_ror : public rTypeInsn  {
+public:
+  insn_ror(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::ror) {}
+};
+
+//or_, rem, max, sh3add, orn};
+
+class insn_or : public rTypeInsn  {
+public:
+  insn_or(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::or_) {}
+};
+
+class insn_rem : public rTypeInsn  {
+public:
+  insn_rem(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::rem) {}
+};
+
+class insn_max : public rTypeInsn  {
+public:
+  insn_max(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::max) {}
+};
+
+class insn_sh3add : public rTypeInsn  {
+public:
+  insn_sh3add(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::sh3add) {}
+};
+
+class insn_orn : public rTypeInsn  {
+public:
+  insn_orn(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::orn) {}
 };
 
 

@@ -418,7 +418,60 @@ void rTypeInsn::dumpSSA(std::ostream &out) const {
     case subType::xor_:
       out << "xor ";
       break;
-      
+    case subType::sll:
+      out << "sll ";
+      break;
+    case subType::mulh:
+      out << "mulh ";
+      break;
+    case subType::rol:
+      out << "rol ";
+      break;      
+    case subType::slt:
+      out << "slt ";
+      break;      
+    case subType::sh1add:
+      out << "sh1add ";
+      break;      
+    case subType::sltu:
+      out << "sltu ";
+      break;      
+    case subType::mulhu:
+      out << "mulhu ";
+      break;
+    case subType::srl:
+      out << "srl ";
+      break;
+    case subType::divu:
+      out << "divu ";
+      break;
+    case subType::minu:
+      out << "minu ";
+      break;
+    case subType::czeqz:
+      out << "czeqz ";
+      break;
+    case subType::sra:
+      out << "sra ";
+      break;
+    case subType::ror:
+      out << "ror ";
+      break;
+    case subType::or_:
+      out << "or ";
+      break;
+    case subType::rem:
+      out << "rem ";
+      break;
+    case subType::max:
+      out << "max ";
+      break;
+    case subType::sh3add:
+      out << "sh3add ";
+      break;
+    case subType::orn:
+      out << "orn ";
+      break;
     default:
       out << "huh ";
     }
@@ -509,6 +562,33 @@ inline static Insn* decodeRtype(uint32_t inst, uint64_t addr){
 	  return new insn_sub(inst, addr);
 	}
 	break;
+      case 0x1:
+	if(m.r.special == 0x0) {
+	  return new insn_sll(inst, addr);
+	}
+	else if(m.r.special == 0x1) {
+	  return new insn_mulh(inst, addr);
+	}
+	else if(m.r.special == 0x30) {
+	  return new insn_rol(inst, addr);
+	}
+	break;
+      case 0x2:
+	if(m.r.special == 0x0) {
+	  return new insn_slt(inst, addr);
+	}
+	else if(m.r.special == 0x10) {
+	  return new insn_sh1add(inst, addr);
+	}
+	break;
+      case 0x3:
+	if(m.r.special == 0x0) {
+	  return new insn_sltu(inst, addr);
+	}
+	else if(m.r.special == 0x1) {
+	  return new insn_mulhu(inst, addr);
+	}
+	break;
       case 0x4:
 	if(m.r.special == 0x0) {
 	  return new insn_xor(inst, addr);
@@ -525,6 +605,43 @@ inline static Insn* decodeRtype(uint32_t inst, uint64_t addr){
 	else if(m.r.special == 0x20) {
 	  return new insn_xnor(inst, addr);
 	}
+	break;
+      case 0x5:
+	if(m.r.special == 0x0) {
+	  return new insn_srl(inst, addr);
+	}
+	else if(m.r.special == 0x1) {
+	  return new insn_divu(inst, addr);
+	}
+	else if(m.r.special == 0x5) {
+	  return new insn_minu(inst, addr);
+	}
+	else if(m.r.special == 0x7) {
+	  return new insn_czeqz(inst, addr);
+	}
+	else if(m.r.special == 0x20) {
+	  return new insn_sra(inst, addr);
+	}
+	else if(m.r.special == 0x30) {
+	  return new insn_ror(inst, addr);
+	}	
+	break;
+      case 0x6:
+	if(m.r.special == 0x0) {
+	  return new insn_or(inst, addr);
+	}
+	else if(m.r.special == 0x1) {
+	  return new insn_rem(inst, addr);
+	}
+	else if(m.r.special == 0x5) {
+	  return new insn_max(inst, addr);
+	}
+	else if(m.r.special == 0x10) {
+	  return new insn_sh3add(inst, addr);
+	}
+	else if(m.r.special == 0x20) {
+	  return new insn_orn(inst, addr);
+	}	
 	break;
       default:
 	break;
