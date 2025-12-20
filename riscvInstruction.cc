@@ -38,10 +38,20 @@ void Insn::dumpSSA(std::ostream &out) const {
   }
 }
 
-
-class loadInsn : public Insn {
+class memInsn : public Insn {
 public:
-  loadInsn(uint32_t inst, uint64_t addr) : Insn(inst, addr) {}
+  memInsn(uint32_t inst, uint64_t addr, insnDefType insnType = insnDefType::unknown) : Insn(inst, addr, insnType) {}
+  
+};
+
+
+class loadInsn : public memInsn {
+protected:
+  enum class subType {unknown,lb,lbu,lh,lhu,lw,lwu,ld};
+  subType st;
+public:
+  loadInsn(uint32_t inst, uint64_t addr, subType st = subType::unknown) : memInsn(inst, addr), st(st) {}
+  
   void recDefines(cfgBasicBlock *cBB, regionCFG *cfg) override {
     cfg->gprDefinitionBlocks[r.l.rd].insert(cBB);
   }
@@ -52,12 +62,13 @@ public:
       addSrc(tbl.gprTbl[r.l.rs1]);
       tbl.gprTbl[r.l.rd] = this;
   }
+  void dumpSSA(std::ostream &out) const override;  
 };
 
 
-class atomicInsn : public Insn {
+class atomicInsn : public memInsn {
 public:
-  atomicInsn(uint32_t inst, uint64_t addr) : Insn(inst, addr) {}
+  atomicInsn(uint32_t inst, uint64_t addr) : memInsn(inst, addr) {}
   void recDefines(cfgBasicBlock *cBB, regionCFG *cfg) override {
     if(r.a.rd != 0) {
       cfg->gprDefinitionBlocks[r.a.rd].insert(cBB);
@@ -214,10 +225,10 @@ public:
 };
 
 
-class storeInsn : public Insn {
+class storeInsn : public memInsn {
 public:
   storeInsn(uint32_t inst, uint64_t addr) :
-    Insn(inst, addr,insnDefType::no_dest) {}
+    memInsn(inst, addr,insnDefType::no_dest) {}
   void recDefines(cfgBasicBlock *cBB, regionCFG *cfg) override {}
   void recUses(cfgBasicBlock *cBB) override {
     cBB->gprRead[r.s.rs1]=true;
@@ -297,37 +308,37 @@ class insn_auipc : public Insn {
 
 class insn_lb : public loadInsn {
 public:
-  insn_lb(uint32_t inst, uint64_t addr) : loadInsn(inst, addr) {}
+  insn_lb(uint32_t inst, uint64_t addr) : loadInsn(inst, addr, subType::lb) {}
 };
 
 class insn_lh : public loadInsn {
 public:
-  insn_lh(uint32_t inst, uint64_t addr) : loadInsn(inst, addr) {}
+  insn_lh(uint32_t inst, uint64_t addr) : loadInsn(inst, addr, subType::lh) {}
 };
 
 class insn_lw : public loadInsn {
 public:
-  insn_lw(uint32_t inst, uint64_t addr) : loadInsn(inst, addr) {}
+  insn_lw(uint32_t inst, uint64_t addr) : loadInsn(inst, addr, subType::lw) {}
 };
 
 class insn_ld : public loadInsn {
 public:
-  insn_ld(uint32_t inst, uint64_t addr) : loadInsn(inst, addr) {}
+  insn_ld(uint32_t inst, uint64_t addr) : loadInsn(inst, addr, subType::ld) {}
 };
 
 class insn_lbu : public loadInsn {
  public:
- insn_lbu(uint32_t inst, uint64_t addr) : loadInsn(inst, addr) {}
+  insn_lbu(uint32_t inst, uint64_t addr) : loadInsn(inst, addr, subType::lbu) {}
 };
 
 class insn_lhu : public loadInsn {
  public:
- insn_lhu(uint32_t inst, uint64_t addr) : loadInsn(inst, addr) {}
+  insn_lhu(uint32_t inst, uint64_t addr) : loadInsn(inst, addr, subType::lhu) {}
 };
 
 class insn_lwu : public loadInsn {
 public:
-  insn_lwu(uint32_t inst, uint64_t addr) : loadInsn(inst, addr) {}
+  insn_lwu(uint32_t inst, uint64_t addr) : loadInsn(inst, addr, subType::lwu) {}
 };
 
 
@@ -539,6 +550,168 @@ void insn_jal::hookupRegs(MipsRegTable<ssaInsn> &tbl) {
   uint32_t rd = (inst>>7) & 31;
   tbl.gprTbl[rd] = this;
 }
+
+
+
+class insn_add : public rTypeInsn  {
+public:
+  insn_add(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::add) {}
+};
+
+class insn_sub : public rTypeInsn  {
+public:
+  insn_sub(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::sub) {}
+};
+
+class insn_mul : public rTypeInsn  {
+public:
+  insn_mul(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::mul) {}
+};
+
+class insn_div : public rTypeInsn  {
+public:
+  insn_div(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::div) {}
+};
+
+class insn_min : public rTypeInsn  {
+public:
+  insn_min(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::min) {}
+};
+
+class insn_sh2add : public rTypeInsn  {
+public:
+  insn_sh2add(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::sh2add) {}
+};
+
+class insn_xnor : public rTypeInsn  {
+public:
+  insn_xnor(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::xnor) {}
+};
+
+class insn_xor : public rTypeInsn  {
+public:
+  insn_xor(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::xor_) {}
+};
+
+class insn_sll : public rTypeInsn  {
+public:
+  insn_sll(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::sll) {}
+};
+
+class insn_mulh : public rTypeInsn  {
+public:
+  insn_mulh(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::mulh) {}
+};
+
+class insn_rol : public rTypeInsn  {
+public:
+  insn_rol(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::rol) {}
+};
+
+class insn_sh1add : public rTypeInsn  {
+public:
+  insn_sh1add(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::sh1add) {}
+};
+
+class insn_slt : public rTypeInsn  {
+public:
+  insn_slt(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::slt) {}
+};
+
+class insn_sltu : public rTypeInsn  {
+public:
+  insn_sltu(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::sltu) {}
+};
+
+class insn_mulhu : public rTypeInsn  {
+public:
+  insn_mulhu(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::mulhu) {}
+};
+
+//srl, divu, minu, czeqz, sra, ror,
+
+class insn_srl : public rTypeInsn  {
+public:
+  insn_srl(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::srl) {}
+};
+
+class insn_divu : public rTypeInsn  {
+public:
+  insn_divu(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::divu) {}
+};
+
+class insn_minu : public rTypeInsn  {
+public:
+  insn_minu(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::minu) {}
+};
+
+class insn_czeqz : public rTypeInsn  {
+public:
+  insn_czeqz(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::czeqz) {}
+};
+
+class insn_sra : public rTypeInsn  {
+public:
+  insn_sra(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::sra) {}
+};
+
+class insn_ror : public rTypeInsn  {
+public:
+  insn_ror(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::ror) {}
+};
+
+//or_, rem, max, sh3add, orn};
+
+class insn_or : public rTypeInsn  {
+public:
+  insn_or(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::or_) {}
+};
+
+class insn_rem : public rTypeInsn  {
+public:
+  insn_rem(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::rem) {}
+};
+
+class insn_max : public rTypeInsn  {
+public:
+  insn_max(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::max) {}
+};
+
+class insn_sh3add : public rTypeInsn  {
+public:
+  insn_sh3add(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::sh3add) {}
+};
+
+class insn_orn : public rTypeInsn  {
+public:
+  insn_orn(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::orn) {}
+};
 
 inline static Insn* decodeRtype(uint32_t inst, uint64_t addr){
   uint32_t opcode = inst & 127;
@@ -820,4 +993,36 @@ Insn* getInsn(uint32_t inst, uint64_t addr){
 
 
 
-
+void loadInsn::dumpSSA(std::ostream &out) const {
+  out << getName();  
+  out << " <- ";
+  switch(st)
+    {
+    case subType::lb:
+      out << "lb ";
+      break;
+    case subType::lh:
+      out << "lh ";
+      break;
+    case subType::lw:
+      out << "lw ";
+      break;
+    case subType::ld:
+      out << "ld ";
+      break;                              
+    case subType::lwu:
+      out << "lwu ";
+      break;
+    case subType::lbu:
+      out << "lbu ";
+      break;
+    case subType::lhu:
+      out << "lhu ";
+      break;
+    default:
+      break;
+    }
+  for(auto src : sources) {
+    out << src->getName() << " ";
+  }  
+}
