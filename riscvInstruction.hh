@@ -90,7 +90,7 @@ public:
   }
   uint64_t getTakenAddr() const { return tAddr; }
   uint64_t getNotTakenAddr() const { return ntAddr; }
-  
+  bool isControlFlow() const override { return true; }  
   void recDefines(cfgBasicBlock *cBB, regionCFG *cfg) override ;
   void recUses(cfgBasicBlock *cBB) override;
   void hookupRegs(MipsRegTable<ssaInsn> &tbl) override;
@@ -103,7 +103,8 @@ protected:
   enum class subType {unknown,add,mul,sub,div,min,sh2add,xnor,xor_,
 		      sll, mulh, rol, slt, sh1add, sltu, mulhu,
 		      srl, divu, minu, czeqz, sra, ror,
-		      or_, rem, max, sh3add, orn};
+		      or_, rem, max, sh3add, orn,
+		      and_, remu, maxu, cznez, andn};
   subType st;
 public:
   rTypeInsn(uint32_t inst, uint64_t addr, insnDefType insnType = insnDefType::gpr, subType st = subType::unknown) :

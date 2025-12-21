@@ -67,6 +67,9 @@ public:
     die();
   }
   virtual void dumpSSA(std::ostream &out) const {}
+  virtual bool isControlFlow() const {
+    return false;
+  }
   virtual bool isLoad() const {
     return false;
   }

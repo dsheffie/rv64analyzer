@@ -960,6 +960,7 @@ void regionCFG::dumpIR() {
     }
     out << "\n";
     for(auto ins : bb->ssaInsns) {
+      out << "  ";
       ins->dumpSSA(out);
       out << "\n";
     }

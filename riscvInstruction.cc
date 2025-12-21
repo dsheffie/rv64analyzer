@@ -534,8 +534,23 @@ void rTypeInsn::dumpSSA(std::ostream &out) const {
     case subType::orn:
       out << "orn ";
       break;
+    case subType::and_:
+      out << "and ";
+      break;
+    case subType::remu:
+      out << "remu ";
+      break;
+    case subType::maxu:
+      out << "maxu ";
+      break;
+    case subType::cznez:
+      out << "cznez ";
+      break;
+    case subType::andn:
+      out << "andn ";
+      break;
     default:
-      out << "huh ";
+      out << "rtypehuh ";
     }
   for(auto src : sources) {
     out << src->getName() << " ";
@@ -630,12 +645,14 @@ void iTypeInsn::dumpSSA(std::ostream &out) const {
       out << "rev8 ";
       break;
     default:
-      out << "huh ";
+      out << "itypehuh ";
     }
   for(auto src : sources) {
     out << src->getName() << " ";
   }
-  out << std::hex << getImm() << std::dec << " ";
+  if(st != subType::mv) {
+    out << std::hex << getImm() << std::dec << " ";
+  }
 }
 
 class insn_addi : public iTypeInsn  {
@@ -850,6 +867,36 @@ public:
     rTypeInsn(inst, addr, insnDefType::gpr, subType::mulhu) {}
 };
 
+class insn_and : public rTypeInsn  {
+public:
+  insn_and(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::and_) {}
+};
+
+class insn_remu : public rTypeInsn  {
+public:
+  insn_remu(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::remu) {}
+};
+
+class insn_maxu : public rTypeInsn  {
+public:
+  insn_maxu(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::maxu) {}
+};
+
+class insn_cznez : public rTypeInsn  {
+public:
+  insn_cznez(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::cznez) {}
+};
+
+class insn_andn : public rTypeInsn  {
+public:
+  insn_andn(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::andn) {}
+};
+
 //srl, divu, minu, czeqz, sra, ror,
 
 class insn_srl : public rTypeInsn  {
@@ -1022,6 +1069,23 @@ inline static Insn* decodeRtype(uint32_t inst, uint64_t addr){
 	else if(m.r.special == 0x20) {
 	  return new insn_orn(inst, addr);
 	}	
+	break;
+      case 0x7:
+	if(m.r.special == 0x0) {
+	  return new insn_and(inst, addr);
+	}
+	else if(m.r.special == 0x1) {
+	  return new insn_remu(inst, addr);
+	}
+	else if(m.r.special == 0x5) {
+	  return new insn_maxu(inst, addr);
+	}
+	else if(m.r.special == 0x7) {
+	  return new insn_cznez(inst, addr);
+	}
+	else if(m.r.special == 0x20) {
+	  return new insn_andn(inst, addr);
+	}
 	break;
       default:
 	break;
