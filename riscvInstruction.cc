@@ -313,7 +313,16 @@ class insn_lui : public Insn {
   }
   void hookupRegs(MipsRegTable<ssaInsn> &tbl) override {
     tbl.gprTbl[r.u.rd] = this;
-  }  
+  }
+  int64_t getImm() const {
+    int32_t imm32 = inst & 0xfffff000;
+    int64_t y = imm32;
+    y = (y << 32) >> 32;
+    return y;
+  }
+  void dumpSSA(std::ostream &out) const override {
+    out <<  getName() << " <- lui " << std::hex << getImm() << std::dec << " ";
+  }    
 };
 
 class insn_nop : public Insn {
@@ -322,6 +331,9 @@ public:
   /* defines nothing */
   void recDefines(cfgBasicBlock *cBB, regionCFG *cfg) override {}  
   void hookupRegs(MipsRegTable<ssaInsn> &tbl) override {}
+  void dumpSSA(std::ostream &out) const override {
+    out << "nop ";
+  }
 };
 
 class insn_auipc : public Insn {
@@ -333,6 +345,15 @@ class insn_auipc : public Insn {
   void hookupRegs(MipsRegTable<ssaInsn> &tbl) override {
     tbl.gprTbl[r.u.rd] = this;
   }
+  int64_t getImm() const {
+    int64_t imm = inst & (~4095);
+    imm = (imm << 32) >> 32;
+    int64_t y = addr + imm;
+    return y;
+  }
+  void dumpSSA(std::ostream &out) const override {
+    out <<  getName() << " <- auipc " << std::hex << getImm() << std::dec << " ";
+  }  
 };
 
 
@@ -553,6 +574,21 @@ void iTypeInsn::recUses(cfgBasicBlock *cBB) {
 void iTypeInsn::hookupRegs(MipsRegTable<ssaInsn> &tbl) {
   addSrc(tbl.gprTbl[r.i.rs1]);
   tbl.gprTbl[r.i.rd] = this;
+}
+
+
+void iTypeInsn::dumpSSA(std::ostream &out) const {
+  out << getName();
+  
+  out << " <- ";
+  switch(st)
+    {
+    default:
+      out << "huh ";
+    }
+  for(auto src : sources) {
+    out << src->getName() << " ";
+  }
 }
 
 

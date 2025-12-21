@@ -61,7 +61,8 @@ public:
     Insn(inst, addr, insnType), st(st) {}
   void recDefines(cfgBasicBlock *cBB, regionCFG *cfg) override;
   void recUses(cfgBasicBlock *cBB) override;  
-  void hookupRegs(MipsRegTable<ssaInsn> &tbl) override;  
+  void hookupRegs(MipsRegTable<ssaInsn> &tbl) override;
+  void dumpSSA(std::ostream &out) const override;  
 };
 
 class iBranchTypeInsn : public Insn {
@@ -71,7 +72,7 @@ protected:
   int64_t tAddr=0,ntAddr=0;
 public:
   iBranchTypeInsn(uint32_t inst, uint64_t addr, subType st = subType::unknown ) : 
-    Insn(inst, addr, insnDefType::no_dest) {
+    Insn(inst, addr, insnDefType::no_dest), st(st) {
     int32_t disp =
       (r.b.imm4_1 << 1)  |
       (r.b.imm10_5 << 5) |	
