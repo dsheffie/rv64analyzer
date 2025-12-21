@@ -578,13 +578,32 @@ void iTypeInsn::hookupRegs(MipsRegTable<ssaInsn> &tbl) {
 
 
 void iTypeInsn::dumpSSA(std::ostream &out) const {
-  out << getName();
-  
-  out << " <- ";
+  out << getName() << " <- ";
   switch(st)
     {
     case subType::addi:
       out << "addi ";
+      break;
+    case subType::mv:
+      out << "mv ";
+      break;
+    case subType::clz:
+      out << "clz ";
+      break;
+    case subType::ctz:
+      out << "ctz ";
+      break;
+    case subType::cpop:
+      out << "cpop ";
+      break;
+    case subType::sextb:
+      out << "sextb ";
+      break;
+    case subType::sexth:
+      out << "sexth ";
+      break;
+    case subType::slli:
+      out << "slli ";
       break;
     case subType::slti:
       out << "slti ";
@@ -594,7 +613,22 @@ void iTypeInsn::dumpSSA(std::ostream &out) const {
       break;
     case subType::xori:
       out << "xori ";
-      break;      
+      break;
+    case subType::srli:
+      out << "srli ";
+      break;
+    case subType::orcb:
+      out << "orcb ";
+      break;
+    case subType::srai:
+      out << "srai ";
+      break;
+    case subType::rori:
+      out << "rori ";
+      break;
+    case subType::rev8:
+      out << "rev8 ";
+      break;
     default:
       out << "huh ";
     }
@@ -608,6 +642,48 @@ class insn_addi : public iTypeInsn  {
 public:
   insn_addi(uint32_t inst, uint64_t addr) :
     iTypeInsn(inst, addr, insnDefType::gpr, subType::addi) {}
+};
+
+class insn_mv : public iTypeInsn  {
+public:
+  insn_mv(uint32_t inst, uint64_t addr) :
+    iTypeInsn(inst, addr, insnDefType::gpr, subType::mv) {}
+};
+
+class insn_slli : public iTypeInsn  {
+public:
+  insn_slli(uint32_t inst, uint64_t addr) :
+    iTypeInsn(inst, addr, insnDefType::gpr, subType::slli) {}
+};
+
+class insn_clz : public iTypeInsn  {
+public:
+  insn_clz(uint32_t inst, uint64_t addr) :
+    iTypeInsn(inst, addr, insnDefType::gpr, subType::clz) {}
+};
+
+class insn_ctz : public iTypeInsn  {
+public:
+  insn_ctz(uint32_t inst, uint64_t addr) :
+    iTypeInsn(inst, addr, insnDefType::gpr, subType::ctz) {}
+};
+
+class insn_cpop : public iTypeInsn  {
+public:
+  insn_cpop(uint32_t inst, uint64_t addr) :
+    iTypeInsn(inst, addr, insnDefType::gpr, subType::cpop) {}
+};
+
+class insn_sextb : public iTypeInsn  {
+public:
+  insn_sextb(uint32_t inst, uint64_t addr) :
+    iTypeInsn(inst, addr, insnDefType::gpr, subType::sextb) {}
+};
+
+class insn_sexth : public iTypeInsn  {
+public:
+  insn_sexth(uint32_t inst, uint64_t addr) :
+    iTypeInsn(inst, addr, insnDefType::gpr, subType::sexth) {}
 };
 
 class insn_slti : public iTypeInsn  {
@@ -628,6 +704,35 @@ public:
     iTypeInsn(inst, addr, insnDefType::gpr, subType::xori) {}
 };
 
+class insn_srli : public iTypeInsn  {
+public:
+  insn_srli(uint32_t inst, uint64_t addr) :
+    iTypeInsn(inst, addr, insnDefType::gpr, subType::srli) {}
+};
+
+class insn_orcb : public iTypeInsn  {
+public:
+  insn_orcb(uint32_t inst, uint64_t addr) :
+    iTypeInsn(inst, addr, insnDefType::gpr, subType::orcb) {}
+};
+
+class insn_srai : public iTypeInsn  {
+public:
+  insn_srai(uint32_t inst, uint64_t addr) :
+    iTypeInsn(inst, addr, insnDefType::gpr, subType::srai) {}
+};
+
+class insn_rori : public iTypeInsn  {
+public:
+  insn_rori(uint32_t inst, uint64_t addr) :
+    iTypeInsn(inst, addr, insnDefType::gpr, subType::rori) {}
+};
+
+class insn_rev8 : public iTypeInsn  {
+public:
+  insn_rev8(uint32_t inst, uint64_t addr) :
+    iTypeInsn(inst, addr, insnDefType::gpr, subType::rev8) {}
+};
 void iBranchTypeInsn::recDefines(cfgBasicBlock *cBB, regionCFG *cfg) {
   /* don't update anything.. */
 }
@@ -963,7 +1068,26 @@ Insn* getInsn(uint32_t inst, uint64_t addr){
       }
       else {
 	if(m.i.sel == 0) {
-	  return new insn_addi(inst, addr);
+	  return ((inst >> 20) == 0) ? reinterpret_cast<Insn*>(new insn_mv(inst, addr)) :
+	    reinterpret_cast<Insn*>(new insn_addi(inst, addr));
+	}
+	else if(m.i.sel == 1) {
+	  switch((inst>>20) & 4095)
+	    {
+	    case 0x600:
+	      return new insn_clz(inst,addr);
+	    case 0x601:
+	      return new insn_ctz(inst,addr);	      
+	    case 0x602:
+	      return new insn_cpop(inst,addr);
+	    case 0x604:
+	      return new insn_sextb(inst,addr);
+	    case 0x605:
+	      return new insn_sexth(inst,addr);
+	    default:
+	      break;
+	    }
+	  return new insn_slli(inst, addr);	  
 	}
 	else if(m.i.sel == 2) {
 	  return new insn_slti(inst, addr);
@@ -973,7 +1097,25 @@ Insn* getInsn(uint32_t inst, uint64_t addr){
 	}	
 	else if(m.i.sel == 4) {
 	  return new insn_xori(inst, addr);
-	}	
+	}
+	else if(m.i.sel == 5) {
+	  switch((inst>>26) & 63)
+	    {
+	    case 0x0:
+	      return new insn_srli(inst, addr);
+	    case 0xa:
+	      return new insn_orcb(inst, addr);
+	    case 0x10:
+	      return new insn_srai(inst, addr);
+	    case 0x18:
+	      return new insn_rori(inst, addr);
+	    case 0x1a:
+	      return new insn_rev8(inst, addr);
+	    default:
+	      break;
+	    }
+	  return new iTypeInsn(inst, addr);
+	}
 	else {
 	  return new iTypeInsn(inst, addr);
 	}

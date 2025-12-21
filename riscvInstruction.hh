@@ -52,7 +52,7 @@ public:
 
 class iTypeInsn : public Insn  {
 protected:
-  enum class subType {unknown, addi, clz, ctz, cpop, sextb, sexth, slli,
+  enum class subType {unknown, addi, mv, clz, ctz, cpop, sextb, sexth, slli,
 		      slti, sltiu, xori, srli, orcb, srai, rori, rev8,
 		      ori, andi};
   subType st;
