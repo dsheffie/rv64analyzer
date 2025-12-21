@@ -62,7 +62,13 @@ public:
   void recDefines(cfgBasicBlock *cBB, regionCFG *cfg) override;
   void recUses(cfgBasicBlock *cBB) override;  
   void hookupRegs(MipsRegTable<ssaInsn> &tbl) override;
-  void dumpSSA(std::ostream &out) const override;  
+  void dumpSSA(std::ostream &out) const override;
+  int64_t getImm() const {
+    int32_t simm32 = (inst >> 20);
+    simm32 |= ((inst>>31)&1) ? 0xfffff000 : 0x0;
+    int64_t simm64 = simm32;
+    return (simm64 <<32) >> 32;
+  }
 };
 
 class iBranchTypeInsn : public Insn {

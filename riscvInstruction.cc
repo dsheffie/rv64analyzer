@@ -583,14 +583,50 @@ void iTypeInsn::dumpSSA(std::ostream &out) const {
   out << " <- ";
   switch(st)
     {
+    case subType::addi:
+      out << "addi ";
+      break;
+    case subType::slti:
+      out << "slti ";
+      break;
+    case subType::sltiu:
+      out << "sltiu ";
+      break;
+    case subType::xori:
+      out << "xori ";
+      break;      
     default:
       out << "huh ";
     }
   for(auto src : sources) {
     out << src->getName() << " ";
   }
+  out << std::hex << getImm() << std::dec << " ";
 }
 
+class insn_addi : public iTypeInsn  {
+public:
+  insn_addi(uint32_t inst, uint64_t addr) :
+    iTypeInsn(inst, addr, insnDefType::gpr, subType::addi) {}
+};
+
+class insn_slti : public iTypeInsn  {
+public:
+  insn_slti(uint32_t inst, uint64_t addr) :
+    iTypeInsn(inst, addr, insnDefType::gpr, subType::slti) {}
+};
+
+class insn_sltiu : public iTypeInsn  {
+public:
+  insn_sltiu(uint32_t inst, uint64_t addr) :
+    iTypeInsn(inst, addr, insnDefType::gpr, subType::sltiu) {}
+};
+
+class insn_xori : public iTypeInsn  {
+public:
+  insn_xori(uint32_t inst, uint64_t addr) :
+    iTypeInsn(inst, addr, insnDefType::gpr, subType::xori) {}
+};
 
 void iBranchTypeInsn::recDefines(cfgBasicBlock *cBB, regionCFG *cfg) {
   /* don't update anything.. */
@@ -926,7 +962,21 @@ Insn* getInsn(uint32_t inst, uint64_t addr){
 	return new insn_nop(inst, addr);
       }
       else {
-	return new iTypeInsn(inst, addr);
+	if(m.i.sel == 0) {
+	  return new insn_addi(inst, addr);
+	}
+	else if(m.i.sel == 2) {
+	  return new insn_slti(inst, addr);
+	}
+	else if(m.i.sel == 3) {
+	  return new insn_sltiu(inst, addr);
+	}	
+	else if(m.i.sel == 4) {
+	  return new insn_xori(inst, addr);
+	}	
+	else {
+	  return new iTypeInsn(inst, addr);
+	}
       }
     }
     case 0x17: /* auipc */
