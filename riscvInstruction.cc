@@ -392,8 +392,6 @@ public:
   insn_lwu(uint32_t inst, uint64_t addr) : loadInsn(inst, addr, subType::lwu) {}
 };
 
-
-
 class insn_sb : public storeInsn {
  public:
   insn_sb(uint32_t inst, uint64_t addr) : storeInsn(inst, addr, subType::sb) {}
@@ -548,6 +546,57 @@ void rTypeInsn::dumpSSA(std::ostream &out) const {
       break;
     case subType::andn:
       out << "andn ";
+      break;
+    case subType::addw:
+      out << "andw ";
+      break;
+    case subType::subw:
+      out << "subw ";
+      break;
+    case subType::rolw:
+      out << "rolw ";
+      break;
+    case subType::sh1adduw:
+      out << "sh1adduw ";
+      break;
+    case subType::sh2adduw:
+      out << "sh2adduw ";
+      break;
+    case subType::zexth:
+      out << "zexth ";
+      break;
+    case subType::rorw:
+      out << "rorw ";
+      break;
+    case subType::sh3adduw:
+      out << "sh3adduw ";
+      break;
+    case subType::mulw:
+      out << "mulw ";
+      break;
+    case subType::adduw:
+      out << "adduw ";
+      break;
+    case subType::sllw:
+      out << "sllw ";
+      break;
+    case subType::divw:
+      out << "divw ";
+      break;
+    case subType::srlw:
+      out << "srlw ";
+      break;
+    case subType::divuw:
+      out << "divuw ";
+      break;
+    case subType::sraw:
+      out << "sraw ";
+      break;
+    case subType::remw:
+      out << "andn ";
+      break;
+    case subType::remuw:
+      out << "remuw ";
       break;
     default:
       out << "rtypehuh ";
@@ -966,6 +1015,109 @@ public:
   insn_orn(uint32_t inst, uint64_t addr) :
     rTypeInsn(inst, addr, insnDefType::gpr, subType::orn) {}
 };
+
+class insn_addw : public rTypeInsn  {
+public:
+  insn_addw(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::addw) {}
+};
+
+class insn_subw : public rTypeInsn  {
+public:
+  insn_subw(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::subw) {}
+};
+
+class insn_rolw : public rTypeInsn  {
+public:
+  insn_rolw(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::rolw) {}
+};
+
+class insn_sh1adduw : public rTypeInsn  {
+public:
+  insn_sh1adduw(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::sh1adduw) {}
+};
+
+class insn_sh2adduw : public rTypeInsn  {
+public:
+  insn_sh2adduw(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::sh2adduw) {}
+};
+
+class insn_zexth : public rTypeInsn  {
+public:
+  insn_zexth(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::zexth) {}
+};
+
+class insn_rorw : public rTypeInsn  {
+public:
+  insn_rorw(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::rorw) {}
+};
+
+class insn_sh3adduw : public rTypeInsn  {
+public:
+  insn_sh3adduw(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::sh3adduw) {}
+};
+
+class insn_mulw : public rTypeInsn  {
+public:
+  insn_mulw(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::mulw) {}
+};
+
+class insn_adduw : public rTypeInsn  {
+public:
+  insn_adduw(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::adduw) {}
+};
+
+class insn_sllw : public rTypeInsn  {
+public:
+  insn_sllw(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::sllw) {}
+};
+
+class insn_divw : public rTypeInsn  {
+public:
+  insn_divw(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::divw) {}
+};
+
+class insn_srlw : public rTypeInsn  {
+public:
+  insn_srlw(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::srlw) {}
+};
+
+class insn_divuw : public rTypeInsn  {
+public:
+  insn_divuw(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::divuw) {}
+};
+
+class insn_sraw : public rTypeInsn  {
+public:
+  insn_sraw(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::sraw) {}
+};
+
+class insn_remw : public rTypeInsn  {
+public:
+  insn_remw(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::remw) {}
+};
+
+class insn_remuw : public rTypeInsn  {
+public:
+  insn_remuw(uint32_t inst, uint64_t addr) :
+    rTypeInsn(inst, addr, insnDefType::gpr, subType::remuw) {}
+};
+
 
 inline static Insn* decodeRtype(uint32_t inst, uint64_t addr){
   uint32_t opcode = inst & 127;

@@ -38,10 +38,10 @@ public:
   int32_t destRegister() const override {
     uint32_t rd = (inst>>7) & 31;
     return (rd == 0) ? -1 : static_cast<int32_t>(rd);
-  }  
-  uint64_t getAddr() const {
-    return addr;
   }
+  uint64_t getAddr() const override {
+    return addr;
+  }  
   Insn(uint32_t inst, uint64_t addr, insnDefType insnType = insnDefType::unknown) :
     ssaInsn(insnType), inst(inst), addr(addr), r(inst) {
   }
@@ -104,7 +104,11 @@ protected:
 		      sll, mulh, rol, slt, sh1add, sltu, mulhu,
 		      srl, divu, minu, czeqz, sra, ror,
 		      or_, rem, max, sh3add, orn,
-		      and_, remu, maxu, cznez, andn};
+		      and_, remu, maxu, cznez, andn,
+		      addw, subw, rolw,
+		      sh1adduw, sh2adduw, zexth, rorw,
+		      sh3adduw, mulw, adduw, sllw, divw,
+		      srlw, divuw, sraw, remw, remuw};
   subType st;
 public:
   rTypeInsn(uint32_t inst, uint64_t addr, insnDefType insnType = insnDefType::gpr, subType st = subType::unknown) :

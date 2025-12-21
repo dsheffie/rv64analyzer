@@ -75,7 +75,10 @@ public:
   }
   virtual bool isStore() const {
     return false;
-  }    
+  }
+  virtual uint64_t getAddr() const {
+    return ~0UL;
+  }
 };
 
 

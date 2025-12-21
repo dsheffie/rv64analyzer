@@ -960,7 +960,8 @@ void regionCFG::dumpIR() {
     }
     out << "\n";
     for(auto ins : bb->ssaInsns) {
-      out << "  ";
+      out << "  " << std::hex <<  ins->getAddr()
+	  << std::dec << " : ";
       ins->dumpSSA(out);
       out << "\n";
     }
