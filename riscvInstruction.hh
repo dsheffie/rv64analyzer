@@ -50,11 +50,15 @@ public:
 };
 
 
-
 class iTypeInsn : public Insn  {
+protected:
+  enum class subType {unknown, addi, clz, ctz, cpop, sextb, sexth, slli,
+		      slti, sltiu, xori, srli, orcb, srai, rori, rev8,
+		      ori, andi};
+  subType st;
 public:
-  iTypeInsn(uint32_t inst, uint64_t addr, insnDefType insnType = insnDefType::gpr) : 
-    Insn(inst, addr, insnType) {}
+  iTypeInsn(uint32_t inst, uint64_t addr, insnDefType insnType = insnDefType::gpr, subType st = subType::unknown) : 
+    Insn(inst, addr, insnType), st(st) {}
   void recDefines(cfgBasicBlock *cBB, regionCFG *cfg) override;
   void recUses(cfgBasicBlock *cBB) override;  
   void hookupRegs(MipsRegTable<ssaInsn> &tbl) override;  
@@ -62,25 +66,28 @@ public:
 
 class iBranchTypeInsn : public Insn {
 protected:
+  enum class subType {unknown, beq, bne, blt, bge, bltu, bgeu};
+  subType st;  
   int64_t tAddr=0,ntAddr=0;
 public:
- iBranchTypeInsn(uint32_t inst, uint64_t addr) : 
-   Insn(inst, addr, insnDefType::no_dest) {
-   int32_t disp =
-     (r.b.imm4_1 << 1)  |
-     (r.b.imm10_5 << 5) |	
-     (r.b.imm11 << 11)  |
-     (r.b.imm12 << 12);
-   disp |= r.b.imm12 ? 0xffffe000 : 0x0;
-   tAddr = disp + addr;
-   ntAddr = addr + 4;
- }
+  iBranchTypeInsn(uint32_t inst, uint64_t addr, subType st = subType::unknown ) : 
+    Insn(inst, addr, insnDefType::no_dest) {
+    int32_t disp =
+      (r.b.imm4_1 << 1)  |
+      (r.b.imm10_5 << 5) |	
+      (r.b.imm11 << 11)  |
+      (r.b.imm12 << 12);
+    disp |= r.b.imm12 ? 0xffffe000 : 0x0;
+    tAddr = disp + addr;
+    ntAddr = addr + 4;
+  }
   uint64_t getTakenAddr() const { return tAddr; }
   uint64_t getNotTakenAddr() const { return ntAddr; }
   
   void recDefines(cfgBasicBlock *cBB, regionCFG *cfg) override ;
   void recUses(cfgBasicBlock *cBB) override;
-  void hookupRegs(MipsRegTable<ssaInsn> &tbl) override;    
+  void hookupRegs(MipsRegTable<ssaInsn> &tbl) override;
+  void dumpSSA(std::ostream &out) const override;  
 };
 
 

@@ -276,33 +276,32 @@ public:
 /* iType */
 class insn_beq : public iBranchTypeInsn {
  public:
- insn_beq(uint32_t inst, uint64_t addr) : iBranchTypeInsn(inst, addr) {}
+  insn_beq(uint32_t inst, uint64_t addr) : iBranchTypeInsn(inst, addr, subType::beq) {}
 };
 
 class insn_bne : public iBranchTypeInsn {
  public:
- insn_bne(uint32_t inst, uint64_t addr) : iBranchTypeInsn(inst, addr) {}
+  insn_bne(uint32_t inst, uint64_t addr) : iBranchTypeInsn(inst, addr, subType::bne) {}
 };
-
 
 class insn_blt : public iBranchTypeInsn {
  public:
-  insn_blt(uint32_t inst, uint64_t addr) : iBranchTypeInsn(inst, addr) {}
+  insn_blt(uint32_t inst, uint64_t addr) : iBranchTypeInsn(inst, addr, subType::blt) {}
 };
 
 class insn_bge : public iBranchTypeInsn {
 public:
-  insn_bge(uint32_t inst, uint64_t addr) : iBranchTypeInsn(inst, addr) {}
+  insn_bge(uint32_t inst, uint64_t addr) : iBranchTypeInsn(inst, addr, subType::bge) {}
 };
 
 class insn_bltu : public iBranchTypeInsn {
  public:
-  insn_bltu(uint32_t inst, uint64_t addr) : iBranchTypeInsn(inst, addr) {}
+  insn_bltu(uint32_t inst, uint64_t addr) : iBranchTypeInsn(inst, addr, subType::bltu) {}
 };
 
 class insn_bgeu : public iBranchTypeInsn {
 public:
-  insn_bgeu(uint32_t inst, uint64_t addr) : iBranchTypeInsn(inst, addr) {}
+  insn_bgeu(uint32_t inst, uint64_t addr) : iBranchTypeInsn(inst, addr, subType::bgeu) {}
 };
 
 class insn_lui : public Insn {
@@ -938,13 +937,13 @@ Insn* getInsn(uint32_t inst, uint64_t addr){
 	case 1: /* bne */
 	  return new insn_bne(inst, addr);
 	case 4: /* blt */
-	  return new insn_blt(inst, addr);	  
+	  return new insn_blt(inst, addr);
 	case 5: /* bge */
-	  return new insn_bge(inst, addr);	  	  
+	  return new insn_bge(inst, addr);
 	case 6: /* bltu */
-	  return new insn_bltu(inst, addr);	  
+	  return new insn_bltu(inst, addr);
 	case 7: /* bgeu */
-	  return new insn_bgeu(inst, addr);	  	  
+	  return new insn_bgeu(inst, addr);
 	default:
 	  break;
 	}
@@ -1082,4 +1081,35 @@ void storeInsn::dumpSSA(std::ostream &out) const {
     out << src->getName() << " ";
   }
   out << computeDisp() << " ";  
+}
+
+
+void iBranchTypeInsn::dumpSSA(std::ostream &out) const {
+  switch(st)
+    {
+    case subType::beq:
+      out << "beq ";
+      break;
+    case subType::bne:
+      out << "bne ";
+      break;
+    case subType::blt:
+      out << "blt ";
+      break;
+    case subType::bge:
+      out << "bge ";
+      break;
+    case subType::bltu:
+      out << "bltu ";
+      break;
+    case subType::bgeu:
+      out << "bgeu ";
+      break;
+    default:
+      break;
+    }
+  for(auto src : sources) {
+    out << src->getName() << " ";
+  }
+  out << std::hex << tAddr << std::dec << " ";
 }
