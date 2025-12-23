@@ -55,7 +55,9 @@ public:
   loadInsn(uint32_t inst, uint64_t addr, subType st = subType::unknown) : memInsn(inst, addr), st(st) {}
   
   void recDefines(cfgBasicBlock *cBB, regionCFG *cfg) override {
-    cfg->gprDefinitionBlocks[r.l.rd].insert(cBB);
+    if(r.l.rd != 0) {
+      cfg->gprDefinitionBlocks[r.l.rd].insert(cBB);
+    }
   }
   void recUses(cfgBasicBlock *cBB) override {
     cBB->gprRead[r.l.rs1]=true;
@@ -309,7 +311,9 @@ class insn_lui : public Insn {
  insn_lui(uint32_t inst, uint64_t addr) :
    Insn(inst, addr) {}
   void recDefines(cfgBasicBlock *cBB, regionCFG *cfg) override {
-    cfg->gprDefinitionBlocks[r.u.rd].insert(cBB);
+    if(r.u.rd != 0) {
+      cfg->gprDefinitionBlocks[r.u.rd].insert(cBB);
+    }
   }
   void hookupRegs(MipsRegTable<ssaInsn> &tbl) override {
     tbl.gprTbl[r.u.rd] = this;
@@ -340,7 +344,9 @@ class insn_auipc : public Insn {
  public:
   insn_auipc(uint32_t inst, uint64_t addr) : Insn(inst, addr) {}
   void recDefines(cfgBasicBlock *cBB, regionCFG *cfg) override {
-    cfg->gprDefinitionBlocks[r.u.rd].insert(cBB);
+    if(r.u.rd != 0) {
+      cfg->gprDefinitionBlocks[r.u.rd].insert(cBB);
+    }
   }
   void hookupRegs(MipsRegTable<ssaInsn> &tbl) override {
     tbl.gprTbl[r.u.rd] = this;
@@ -434,7 +440,9 @@ void Insn::set(regionCFG *cfg, cfgBasicBlock *cBB) {
 
 /* r-type */
 void rTypeInsn::recDefines(cfgBasicBlock *cBB, regionCFG *cfg) {
-  cfg->gprDefinitionBlocks[r.r.rd].insert(cBB);
+  if(r.r.rd != 0) {
+    cfg->gprDefinitionBlocks[r.r.rd].insert(cBB);
+  }
 }
 
 void rTypeInsn::recUses(cfgBasicBlock *cBB) {
@@ -608,7 +616,9 @@ void rTypeInsn::dumpSSA(std::ostream &out) const {
 
 
 void insn_jalr::recDefines(cfgBasicBlock *cBB, regionCFG *cfg) {
-  cfg->gprDefinitionBlocks[r.r.rd].insert(cBB);
+  if(r.r.rd != 0) {
+    cfg->gprDefinitionBlocks[r.r.rd].insert(cBB);
+  }
 }
 
 void insn_jalr::recUses(cfgBasicBlock *cBB) {
@@ -628,7 +638,9 @@ void insn_jr::hookupRegs(MipsRegTable<ssaInsn> &tbl) {
 }
 
 void iTypeInsn::recDefines(cfgBasicBlock *cBB, regionCFG *cfg) {
-  cfg->gprDefinitionBlocks[r.i.rd].insert(cBB);
+  if(r.i.rd != 0) {
+    cfg->gprDefinitionBlocks[r.i.rd].insert(cBB);
+  }
 }
 
 void iTypeInsn::recUses(cfgBasicBlock *cBB) {
@@ -816,7 +828,9 @@ void iBranchTypeInsn::hookupRegs(MipsRegTable<ssaInsn> &tbl) {
 void insn_jal::recDefines(cfgBasicBlock *cBB, regionCFG *cfg)  {
   uint32_t rd = (inst>>7) & 31;
   assert(rd != 0);
-  cfg->gprDefinitionBlocks[rd].insert(cBB);
+  if(rd != 0) {
+    cfg->gprDefinitionBlocks[rd].insert(cBB);
+  }
 }
 
 void insn_jal::hookupRegs(MipsRegTable<ssaInsn> &tbl) {
