@@ -124,6 +124,9 @@ public:
   bool hasJR(bool isRet=false) const;
   bool hasTermDirectBranchOrJump(uint64_t &target, uint64_t &fallthru) const;
   bool fallsThru() const;
+
+  bool mergableWithSucc() const;
+  
   bool hasJAL() const {
     return hasjal;
   }

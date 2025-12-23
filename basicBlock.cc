@@ -126,6 +126,20 @@ bool basicBlock::fallsThru() const {
 }
 
 
+bool basicBlock::mergableWithSucc() const {
+  if(not(fallsThru())) {
+    return false;
+  }
+  if(succs.size() != 1) {
+    return false;
+  }
+  auto sbb = *(succs.begin());
+  if(sbb->preds.size() != 1) {
+    return false;
+  }
+  return true;
+}
+
 void basicBlock::addSuccessor(basicBlock *bb) {
   if(succs.find(bb) != succs.end())
     return;

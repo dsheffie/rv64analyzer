@@ -227,6 +227,9 @@ int main(int argc, char *argv[]) {
 
   //create region
   for(auto p : basicBlock::bbMap) {
+    if(p.second->mergableWithSucc()) {
+      std::cout << "found merging candidate\n";
+    }
     r.push_back(p.second);
   }
   
