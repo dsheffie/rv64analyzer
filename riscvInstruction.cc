@@ -705,8 +705,33 @@ void iTypeInsn::dumpSSA(std::ostream &out) const {
     case subType::rev8:
       out << "rev8 ";
       break;
+    case subType::ori:
+      out << "ori ";
+      break;
+    case subType::andi:
+      out << "andi ";
+      break;
+    case subType::addiw:
+      out << "addiw ";
+      break;
+    case subType::slliw:
+      out << "slliw ";
+      break;
+    case subType::slliuw:
+      out << "slliuw ";
+      break;
+    case subType::clzw:
+      out << "clzw ";
+      break;
+    case subType::ctzw:
+      out << "ctzw ";
+      break;
+    case subType::cpopw:
+      out << "cpopw ";
+      break;
+
     default:
-      out << "itypehuh ";
+      out << "itypehuh with sel = " << r.i.sel << " ";
     }
   for(auto src : sources) {
     out << src->getName() << " ";
@@ -811,6 +836,74 @@ public:
   insn_rev8(uint32_t inst, uint64_t addr) :
     iTypeInsn(inst, addr, insnDefType::gpr, subType::rev8) {}
 };
+
+class insn_ori : public iTypeInsn  {
+public:
+  insn_ori(uint32_t inst, uint64_t addr) :
+    iTypeInsn(inst, addr, insnDefType::gpr, subType::ori) {}
+};
+
+class insn_andi : public iTypeInsn  {
+public:
+  insn_andi(uint32_t inst, uint64_t addr) :
+    iTypeInsn(inst, addr, insnDefType::gpr, subType::andi) {}
+};
+
+class insn_addiw : public iTypeInsn  {
+public:
+  insn_addiw(uint32_t inst, uint64_t addr) :
+    iTypeInsn(inst, addr, insnDefType::gpr, subType::addiw) {}
+};
+
+class insn_slliw : public iTypeInsn  {
+public:
+  insn_slliw(uint32_t inst, uint64_t addr) :
+    iTypeInsn(inst, addr, insnDefType::gpr, subType::slliw) {}
+};
+
+class insn_slliuw : public iTypeInsn  {
+public:
+  insn_slliuw(uint32_t inst, uint64_t addr) :
+    iTypeInsn(inst, addr, insnDefType::gpr, subType::slliuw) {}
+};
+
+class insn_clzw : public iTypeInsn  {
+public:
+  insn_clzw(uint32_t inst, uint64_t addr) :
+    iTypeInsn(inst, addr, insnDefType::gpr, subType::clzw) {}
+};
+
+class insn_ctzw : public iTypeInsn  {
+public:
+  insn_ctzw(uint32_t inst, uint64_t addr) :
+    iTypeInsn(inst, addr, insnDefType::gpr, subType::ctzw) {}
+};
+
+class insn_cpopw : public iTypeInsn  {
+public:
+  insn_cpopw(uint32_t inst, uint64_t addr) :
+    iTypeInsn(inst, addr, insnDefType::gpr, subType::cpopw) {}
+};
+
+class insn_srliw : public iTypeInsn  {
+public:
+  insn_srliw(uint32_t inst, uint64_t addr) :
+    iTypeInsn(inst, addr, insnDefType::gpr, subType::srliw) {}
+};
+
+class insn_sraiw : public iTypeInsn  {
+public:
+  insn_sraiw(uint32_t inst, uint64_t addr) :
+    iTypeInsn(inst, addr, insnDefType::gpr, subType::sraiw) {}
+};
+
+class insn_roriw : public iTypeInsn  {
+public:
+  insn_roriw(uint32_t inst, uint64_t addr) :
+    iTypeInsn(inst, addr, insnDefType::gpr, subType::roriw) {}
+};
+
+
 void iBranchTypeInsn::recDefines(cfgBasicBlock *cBB, regionCFG *cfg) {
   /* don't update anything.. */
 }
@@ -1346,16 +1439,45 @@ Insn* getInsn(uint32_t inst, uint64_t addr){
 	    }
 	  return new iTypeInsn(inst, addr);
 	}
+	else if(m.i.sel == 6) {
+	  return new insn_ori(inst, addr);
+	}
 	else {
-	  return new iTypeInsn(inst, addr);
+	  return new insn_andi(inst, addr);
 	}
       }
     }
     case 0x17: /* auipc */
       return new insn_auipc(inst, addr);
-    case 0x1b:
+    case 0x1b: {
+      if ( (((inst>>12) & 7) == 0) and (rd == 0)) {
+	return new insn_nop(inst, addr);
+      }
+      else if(m.i.sel == 0) {
+	return new insn_addiw(inst, addr);
+      }
+      else if(m.i.sel == 1) {
+	uint32_t sel = ((inst>>26)&63);
+	if(sel == 0) {
+	  return new insn_slliw(inst, addr);
+	}
+	else if(sel == 2) {
+	  return new insn_slliuw(inst, addr);
+	}
+	else if(sel == 0x18) {
+	  if( ((inst>>20)&31) == 0) {
+	    return new insn_clzw(inst, addr);
+	  }
+	  else if(((inst>>20)&31) == 1) {
+	    return new insn_ctzw(inst, addr);
+	  }
+	  else if(((inst>>20)&31) == 1) {
+	    return new insn_cpopw(inst, addr);
+	  }	  
+	}
+      }
       return new iTypeInsn(inst, addr);
-
+    }
     case 0x23: {/* stores */
       switch(m.s.sel)
 	{

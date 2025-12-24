@@ -52,9 +52,11 @@ public:
 
 class iTypeInsn : public Insn  {
 protected:
-  enum class subType {unknown, addi, mv, clz, ctz, cpop, sextb, sexth, slli,
-		      slti, sltiu, xori, srli, orcb, srai, rori, rev8,
-		      ori, andi};
+  enum class subType {
+    unknown, addi, mv, clz, ctz, cpop, sextb, sexth, slli,
+    slti, sltiu, xori, srli, orcb, srai, rori, rev8, ori, andi,
+    addiw, slliw, slliuw, clzw, ctzw, cpopw, srliw, sraiw, roriw
+  };
   subType st;
 public:
   iTypeInsn(uint32_t inst, uint64_t addr, insnDefType insnType = insnDefType::gpr, subType st = subType::unknown) : 
@@ -100,15 +102,17 @@ public:
 
 class rTypeInsn : public Insn {
 protected:
-  enum class subType {unknown,add,mul,sub,div,min,sh2add,xnor,xor_,
-		      sll, mulh, rol, slt, sh1add, sltu, mulhu,
-		      srl, divu, minu, czeqz, sra, ror,
-		      or_, rem, max, sh3add, orn,
-		      and_, remu, maxu, cznez, andn,
-		      addw, subw, rolw,
-		      sh1adduw, sh2adduw, zexth, rorw,
-		      sh3adduw, mulw, adduw, sllw, divw,
-		      srlw, divuw, sraw, remw, remuw};
+  enum class subType {
+    unknown,add,mul,sub,div,min,sh2add,xnor,xor_,
+    sll, mulh, rol, slt, sh1add, sltu, mulhu,
+    srl, divu, minu, czeqz, sra, ror,
+    or_, rem, max, sh3add, orn,
+    and_, remu, maxu, cznez, andn,
+    addw, subw, rolw,
+    sh1adduw, sh2adduw, zexth, rorw,
+    sh3adduw, mulw, adduw, sllw, divw,
+    srlw, divuw, sraw, remw, remuw
+  };
   subType st;
 public:
   rTypeInsn(uint32_t inst, uint64_t addr, insnDefType insnType = insnDefType::gpr, subType st = subType::unknown) :
