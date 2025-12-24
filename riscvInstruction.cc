@@ -729,6 +729,15 @@ void iTypeInsn::dumpSSA(std::ostream &out) const {
     case subType::cpopw:
       out << "cpopw ";
       break;
+    case subType::srliw:
+      out << "srliw ";
+      break;
+     case subType::sraiw:
+      out << "sraiw ";
+      break;     
+     case subType::roriw:
+       out << "roriw ";
+      break;     
 
     default:
       out << "itypehuh with sel = " << r.i.sel << " ";
@@ -1474,6 +1483,18 @@ Insn* getInsn(uint32_t inst, uint64_t addr){
 	  else if(((inst>>20)&31) == 1) {
 	    return new insn_cpopw(inst, addr);
 	  }	  
+	}
+      }
+      else if(m.i.sel == 5) {
+	uint32_t sel =  (inst >> 25) & 127;
+	if(sel == 0x0) {
+	  return new insn_srliw(inst, addr);
+	}
+	else if(sel == 0x20) {
+	  return new insn_sraiw(inst, addr);
+	}
+	else if(sel == 0x30) {
+	  return new insn_roriw(inst, addr);
 	}
       }
       return new iTypeInsn(inst, addr);
