@@ -30,7 +30,6 @@ class phiNode : public ssaInsn {
     ssaInsn(insnType) {}
   virtual void print() const = 0;
   virtual void addIncomingEdge(regionCFG *cfg, cfgBasicBlock *b)  = 0;
-  virtual void hookupRegs(MipsRegTable<ssaInsn> &tbl) override;
   virtual void dumpSSA(std::ostream &out) const override;
 };
 
@@ -43,6 +42,7 @@ class gprPhiNode : public phiNode {
     return gprId;
   }
   void addIncomingEdge(regionCFG *cfg, cfgBasicBlock *b) override;
+  virtual void hookupRegs(MipsRegTable<ssaInsn> &tbl) override;  
   void print() const override {
     printf("phi for gpr %u\n", gprId);
   }

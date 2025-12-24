@@ -652,7 +652,9 @@ bool regionCFG::dominates(cfgBasicBlock *A, cfgBasicBlock *B) const {
 }
 
 
-void phiNode::hookupRegs(MipsRegTable<ssaInsn> &tbl) {}
+void gprPhiNode::hookupRegs(MipsRegTable<ssaInsn> &tbl) {
+  tbl.gprTbl[gprId] = this;
+}
 
 
 
@@ -1039,7 +1041,6 @@ void regionCFG::findNaturalLoops() {
   //use idom?
 
   bool changed = true;
-  int updates = 0;
 
   std::cout << "found " << nestedLoops.size() << " loops\n";  
   
@@ -1066,7 +1067,6 @@ void regionCFG::findNaturalLoops() {
 	  b->addChild(a);
 	  nestedLoops.erase(nestedLoops.begin() + i);
 	  changed = true;
-	  ++updates;
 	  break;
 	}
       }

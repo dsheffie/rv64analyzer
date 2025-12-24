@@ -260,18 +260,7 @@ void cfgBasicBlock::traverseAndRename(regionCFG *cfg){
       //regTbl.loadGPR(i);
     }
   }
-  //for(size_t i = 0; i < 32; i++) {
-  //if(cfg->allFprRead[i] or not(cfg->fprDefinitionBlocks[i].empty())) {
-  //regTbl.loadFPR(i);
-  //}
-  //}
-  //for(size_t i = 0; i < 5; i++) {
-  //if(cfg->allFcrRead[i] or not(cfg->fcrDefinitionBlocks[i].empty())) {
-  //  regTbl.loadFCR(i);
-  // }
-  //}
-  
-  //termRegTbl.copy(regTbl);
+ 
   ssaRegTbl.copy(regTbl);
   
   for(auto nBlock : dtree_succs) {
@@ -297,16 +286,17 @@ void cfgBasicBlock::traverseAndRename(regionCFG *cfg, ssaRegTables prevRegTbl) {
   ssaRegTables regTbl(prevRegTbl);
   
   /* generate code for each instruction */
+  for(auto p : phiNodes) {
+    p->makePrettyName();    
+    ssaInsns.push_back(p);
+    p->hookupRegs(regTbl);
+  }
+  
   for(size_t i = 0, n=insns.size(); i < n; i++) {
     auto insn = insns.at(i);
     insn->hookupRegs(regTbl);
   }
   
-  assert(ssaInsns.empty());  
-  for(auto p : phiNodes) {
-    p->makePrettyName();    
-    ssaInsns.push_back(p);
-  }
   for(auto ins : insns) {
     ins->makePrettyName();
     ssaInsns.push_back(ins);
