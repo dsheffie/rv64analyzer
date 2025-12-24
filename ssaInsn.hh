@@ -7,6 +7,9 @@
 #include <vector>
 #include "helper.hh"
 
+class cfgBasicBlock;
+class regionCFG;
+
 template <typename T>
 class MipsRegTable {
 public:
@@ -80,6 +83,33 @@ public:
     return ~0UL;
   }
 };
+
+class phiNode : public ssaInsn {
+ protected:
+  std::vector<std::pair<cfgBasicBlock*, ssaInsn*>> inBoundEdges;
+ public:
+  phiNode(insnDefType insnType = insnDefType::unknown) :
+    ssaInsn(insnType) {}
+  virtual void print() const = 0;
+  virtual void addIncomingEdge(regionCFG *cfg, cfgBasicBlock *b)  = 0;
+  virtual void dumpSSA(std::ostream &out) const override;
+};
+
+class gprPhiNode : public phiNode {
+ protected:
+  int32_t gprId;
+ public:
+  gprPhiNode(uint32_t gprId) : phiNode(insnDefType::gpr), gprId(gprId){}
+  int32_t destRegister() const override {
+    return gprId;
+  }
+  void addIncomingEdge(regionCFG *cfg, cfgBasicBlock *b) override;
+  virtual void hookupRegs(MipsRegTable<ssaInsn> &tbl) override;  
+  void print() const override {
+    printf("phi for gpr %u\n", gprId);
+  }
+};
+
 
 
 #endif

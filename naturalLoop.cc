@@ -1,5 +1,6 @@
 #include "regionCFG.hh"
 #include "naturalLoop.hh"
+#include "ssaInsn.hh"
 
 void naturalLoop::print() const {
   printf("loop head %s\n", head->getName().c_str());
@@ -53,4 +54,15 @@ void naturalLoop::emitGraphviz(int &l_id, std::ostream &out) const {
   
   out << "}\n";
 
+}
+
+bool naturalLoop::isCountableLoop() const {
+  for(auto o : head->ssaInsns) {
+    gprPhiNode *p = reinterpret_cast<gprPhiNode*>(o);
+    if(p == nullptr) {
+      break;
+    }
+  }
+  
+  return false;
 }

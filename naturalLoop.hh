@@ -44,6 +44,7 @@ public:
   bool isNestedLoop(const naturalLoop &other) const;
   bool isSameLoop(const naturalLoop &other) const;
   void emitGraphviz(int &l_id, std::ostream &out) const;
+  bool isCountableLoop() const;
 };
 
 class sortNaturalLoops {
