@@ -828,7 +828,7 @@ void regionCFG::asDot() const {
       uint64_t stop = instances.at(m-1)+128;
       std::cout << "will dump " << (stop-start) << " instructions\n";
       std::stringstream nss;
-      nss << "pipe_" << std::hex << vpc << std::dec << ".html";
+      nss << name << "_pipe_" << std::hex << vpc << std::dec << ".html";
       dump_pipe(nss.str(), pt, start, stop);
     }
   }
