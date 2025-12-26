@@ -140,6 +140,7 @@ public:
   void recDefines(cfgBasicBlock *cBB, regionCFG *cfg) override {}
   void recUses(cfgBasicBlock *cBB) override {}
   void hookupRegs(MipsRegTable<ssaInsn> &tbl) override {}
+  void dumpSSA(std::ostream &out) const override;  
 };
 
 class insn_jal : public Insn {
@@ -158,7 +159,8 @@ public:
   }  
   void recDefines(cfgBasicBlock *cBB, regionCFG *cfg) override;
   void recUses(cfgBasicBlock *cBB) override {}
-  void hookupRegs(MipsRegTable<ssaInsn> &tbl) override;      
+  void hookupRegs(MipsRegTable<ssaInsn> &tbl) override;
+  void dumpSSA(std::ostream &out) const override;  
 };
 
 
@@ -168,7 +170,8 @@ public:
     Insn(inst, addr, insnDefType::no_dest) {}
   void recDefines(cfgBasicBlock *cBB, regionCFG *cfg) override {}
   void recUses(cfgBasicBlock *cBB) override;
-  void hookupRegs(MipsRegTable<ssaInsn> &tbl) override;      
+  void hookupRegs(MipsRegTable<ssaInsn> &tbl) override;
+  void dumpSSA(std::ostream &out) const override;  
 };
 
 class insn_jalr : public Insn {
@@ -177,7 +180,8 @@ public:
     Insn(inst, addr, insnDefType::gpr) {}
   void recDefines(cfgBasicBlock *cBB, regionCFG *cfg) override;
   void recUses(cfgBasicBlock *cBB) override;
-  void hookupRegs(MipsRegTable<ssaInsn> &tbl) override;    
+  void hookupRegs(MipsRegTable<ssaInsn> &tbl) override;
+  void dumpSSA(std::ostream &out) const override;  
 };
 
 

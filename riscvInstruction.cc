@@ -614,6 +614,9 @@ void rTypeInsn::dumpSSA(std::ostream &out) const {
   }
 }
 
+void insn_j::dumpSSA(std::ostream &out) const {
+  out << "j " << std::hex << getJumpAddr() << std::dec << " ";
+}
 
 void insn_jalr::recDefines(cfgBasicBlock *cBB, regionCFG *cfg) {
   if(r.r.rd != 0) {
@@ -624,6 +627,15 @@ void insn_jalr::recDefines(cfgBasicBlock *cBB, regionCFG *cfg) {
 void insn_jalr::recUses(cfgBasicBlock *cBB) {
   cBB->gprRead[r.r.rs1]=true;  
 }
+
+void insn_jalr::dumpSSA(std::ostream &out) const {
+  out << getName() << " <- jalr ";
+  for(auto src : sources) {
+    out << src->getName() << " ";
+  }  
+}
+
+
 void insn_jr::recUses(cfgBasicBlock *cBB) {
   cBB->gprRead[r.r.rs1]=true;
 }
@@ -636,6 +648,14 @@ void insn_jalr::hookupRegs(MipsRegTable<ssaInsn> &tbl) {
 void insn_jr::hookupRegs(MipsRegTable<ssaInsn> &tbl) {
   addSrc(tbl.gprTbl[r.r.rs1]);
 }
+
+void insn_jr::dumpSSA(std::ostream &out) const {
+  out << "jr ";
+  for(auto src : sources) {
+    out << src->getName() << " ";
+  }  
+}
+
 
 void iTypeInsn::recDefines(cfgBasicBlock *cBB, regionCFG *cfg) {
   if(r.i.rd != 0) {
@@ -935,9 +955,16 @@ void insn_jal::recDefines(cfgBasicBlock *cBB, regionCFG *cfg)  {
   }
 }
 
+
 void insn_jal::hookupRegs(MipsRegTable<ssaInsn> &tbl) {
   uint32_t rd = (inst>>7) & 31;
-  tbl.gprTbl[rd] = this;
+  if(rd != 0) {
+    tbl.gprTbl[rd] = this;
+  }
+}
+
+void insn_jal::dumpSSA(std::ostream &out) const {
+  out << getName() << " <- jal " << std::hex << getJumpAddr() << std::dec << " ";
 }
 
 
