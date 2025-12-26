@@ -43,7 +43,7 @@ public:
   memInsn(uint32_t inst, uint64_t addr, insnDefType insnType = insnDefType::unknown) : Insn(inst, addr, insnType) {}
   virtual int64_t computeDisp() const {
     return 0;
-  }  
+  }
 };
 
 
@@ -252,7 +252,7 @@ protected:
   subType st;
 public:
   storeInsn(uint32_t inst, uint64_t addr, subType st = subType::unknown) :
-    memInsn(inst, addr,insnDefType::no_dest) {}
+    memInsn(inst, addr,insnDefType::no_dest),st(st) {}
   bool isStore() const override {
     return true;
   }
@@ -1629,6 +1629,9 @@ void loadInsn::dumpSSA(std::ostream &out) const {
   out << " <- ";
   switch(st)
     {
+    case subType::unknown:
+      out << "badLoad ";
+      break;      
     case subType::lb:
       out << "lb ";
       break;
@@ -1663,6 +1666,9 @@ void loadInsn::dumpSSA(std::ostream &out) const {
 void storeInsn::dumpSSA(std::ostream &out) const {
   switch(st)
     {
+    case subType::unknown:
+      out << "badStore ";
+      break;
     case subType::sb:
       out << "sb ";
       break;
