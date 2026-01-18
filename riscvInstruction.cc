@@ -1387,7 +1387,78 @@ inline static Insn* decodeRtype(uint32_t inst, uint64_t addr){
       }
   }
   else if(opcode == 0x3b) {
-
+    switch(m.r.sel)
+      {
+      case 0:
+	{
+	  switch(m.r.special)
+	    {
+	    case 0:
+	      return new insn_addw(inst, addr);
+	    case 1:
+	      return new insn_mulw(inst, addr);
+	    case 4:
+	      return new insn_adduw(inst, addr);
+	    case 32:
+	      return new insn_subw(inst, addr);
+	    default:
+	      break;
+	    }
+	  break;
+	}
+      case 1:
+	if(m.r.special == 0) {
+	  return new insn_sllw(inst, addr);
+	}
+	else if(m.r.special == 0x30) {
+	  return new insn_rolw(inst, addr);
+	}
+	break;
+      case 2:
+	if(m.r.special == 16) {
+	  return new insn_sh1adduw(inst, addr);
+	}
+	break;
+      case 4:
+	switch(m.r.special)
+	  {
+	  case 1:
+	    return new insn_divw(inst, addr);
+	  case 4:
+	    return new insn_zexth(inst, addr);
+	  case 16:
+	    return new insn_sh2adduw(inst, addr);
+	  default:
+	    break;
+	  }
+	break;
+      case 5:
+	switch(m.r.special)
+	  {
+	  case 0:
+	    return new insn_srlw(inst, addr);
+	  case 1:
+	    return new insn_divuw(inst, addr);
+	  case 32:
+	    return new insn_sraw(inst, addr);
+	  case 0x30:
+	    return new insn_rorw(inst, addr);
+	  default:
+	    break;
+	  }
+	break;
+      case 6:
+	if(m.r.special == 1) {
+	  return new insn_remw(inst, addr);
+	}
+	break;
+      case 7:
+	if(m.r.special == 1) {
+	  return new insn_remuw(inst, addr);
+	}
+      default:
+	break;
+      }
   }
   return new rTypeInsn(inst, addr);  
 }
