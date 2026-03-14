@@ -226,10 +226,24 @@ int main(int argc, char *argv[]) {
   std::vector<basicBlock*> r;
 
   //create region
-  for(auto p : basicBlock::bbMap) {
-    if(p.second->mergableWithSucc()) {
-      std::cout << "found merging candidate\n";
+  bool merged = false;
+  do {
+    merged = false;
+    for(auto p : basicBlock::bbMap) {    
+      bool m = p.second->mergeWithSucc();
+      if(m) {
+	merged = true;
+	std::cout << "found merging candidate\n";
+	break;
+      }
     }
+  }
+  while(merged);
+  
+  for(auto p : basicBlock::bbMap) {
+    //if(p.second->mergableWithSucc()) {
+    //std::cout << "found merging candidate\n";
+    //}
     r.push_back(p.second);
   }
   

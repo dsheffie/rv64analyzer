@@ -64,6 +64,8 @@ private:
   void toposort(const std::set<basicBlock*> &valid,
 		std::list<basicBlock*> &ordered,
 		std::set<basicBlock*> &visited);
+
+  bool mergableWithSucc() const;
 public:
   static void dropAllBBs();
   static void dumpCFG();
@@ -125,7 +127,8 @@ public:
   bool hasTermDirectBranchOrJump(uint64_t &target, uint64_t &fallthru) const;
   bool fallsThru() const;
 
-  bool mergableWithSucc() const;
+
+  bool mergeWithSucc();
   
   bool hasJAL() const {
     return hasjal;

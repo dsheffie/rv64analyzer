@@ -140,6 +140,48 @@ bool basicBlock::mergableWithSucc() const {
   return true;
 }
 
+bool basicBlock::mergeWithSucc() {
+  if(not(mergableWithSucc())) {
+    return false;
+  }
+  auto sbb = *(succs.begin());
+
+  succs.clear();
+  edgeCnts.clear();
+  
+  //remove old succ bb
+  for(auto nbb : sbb->succs) {
+    nbb->preds.erase(sbb);
+  }
+  
+  //add this basicblock
+  for(auto nbb : sbb->succs) {
+    addSuccessor(nbb);
+  }
+
+  for(auto c : sbb->vecIns) {
+    vecIns.emplace_back(c.inst,c.pc,c.vpc);
+    auto it = insMap.find(c.pc);
+    insMap.erase(it);
+    insMap[c.pc] = this;
+  }
+  auto it = bbMap.find(sbb->entryAddr);
+  bbMap.erase(it);
+  edgeCnts = sbb->edgeCnts;
+  
+  //std::cout << "old edge count size " << sbb->edgeCnts.size() << "\n";
+  //for(auto z : edgeCnts) {
+  //printf("%lx,%lu\n", z.first, z.second);
+  //}
+
+  termAddr = sbb->termAddr;
+  edgeCnts = sbb->edgeCnts;
+  totalEdges = sbb->totalEdges;
+
+  delete sbb;
+  return true;
+}
+
 void basicBlock::addSuccessor(basicBlock *bb) {
   if(succs.find(bb) != succs.end())
     return;
