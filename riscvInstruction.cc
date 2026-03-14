@@ -18,6 +18,7 @@ std::ostream &operator<<(std::ostream &out, const Insn &ins) {
 
 void ssaInsn::makePrettyName() {
   std::stringstream ss;
+  assert(destRegister() != -1);
   ss << getGPRName(destRegister()) << "_" << uuid;
   prettyName = ss.str(); 
 }

@@ -26,15 +26,16 @@ enum class insnDefType {no_dest,fpr,gpr,hilo,fcr,icnt,unknown};
 
 class ssaInsn {
 protected:
-  insnDefType insnType;
+  int32_t gprId;  
+  insnDefType insnType;  
   uint64_t uuid;
   std::set<ssaInsn*> uses;
   std::vector<ssaInsn*> sources;
   std::string prettyName;
   static uint64_t uuid_counter;
 public:
-  ssaInsn(insnDefType insnType = insnDefType::unknown) :
-    insnType(insnType), uuid(uuid_counter++) {
+  ssaInsn(int32_t gprId, insnDefType insnType = insnDefType::unknown) :
+    gprId(gprId),insnType(insnType), uuid(uuid_counter++) {
   }
   virtual ~ssaInsn() {}    
   const std::string &getName() const {
@@ -61,7 +62,7 @@ public:
     src->uses.insert(this);
   }
   virtual int32_t destRegister() const {
-    return -1;
+    return gprId;
   }
   virtual bool isFloatingPoint() const {
     return false;
@@ -88,18 +89,16 @@ class phiNode : public ssaInsn {
  protected:
   std::vector<std::pair<cfgBasicBlock*, ssaInsn*>> inBoundEdges;
  public:
-  phiNode(insnDefType insnType = insnDefType::unknown) :
-    ssaInsn(insnType) {}
+  phiNode(int32_t gprId, insnDefType insnType = insnDefType::unknown) :
+    ssaInsn(gprId, insnType) {}
   virtual void print() const = 0;
   virtual void addIncomingEdge(regionCFG *cfg, cfgBasicBlock *b)  = 0;
   virtual void dumpSSA(std::ostream &out) const override;
 };
 
 class gprPhiNode : public phiNode {
- protected:
-  int32_t gprId;
  public:
-  gprPhiNode(uint32_t gprId) : phiNode(insnDefType::gpr), gprId(gprId){}
+  gprPhiNode(int32_t gprId) : phiNode(gprId,insnDefType::gpr){}
   int32_t destRegister() const override {
     return gprId;
   }

@@ -43,7 +43,7 @@ public:
     return addr;
   }  
   Insn(uint32_t inst, uint64_t addr, insnDefType insnType = insnDefType::unknown) :
-    ssaInsn(insnType), inst(inst), addr(addr), r(inst) {
+    ssaInsn((inst>>7) & 31, insnType), inst(inst), addr(addr), r(inst) {
   }
   void hookupRegs(MipsRegTable<ssaInsn> &tbl) override;
   void dumpSSA(std::ostream &out) const override;

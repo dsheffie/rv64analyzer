@@ -681,7 +681,8 @@ void gprPhiNode::addIncomingEdge(regionCFG *cfg, cfgBasicBlock *b) {
   
   ssaInsn *in = b->ssaRegTbl.gprTbl[gprId];
   assert(in);
-
+  //std::cout << "dstReg = " << in->destRegister() << "\n";
+  
   inBoundEdges.emplace_back(b, in);
 }
 

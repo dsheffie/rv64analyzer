@@ -253,7 +253,7 @@ void cfgBasicBlock::traverseAndRename(regionCFG *cfg){
   
   for(size_t i = 0; i < 32; i++) {
     if(cfg->allGprRead[i] or not(cfg->gprDefinitionBlocks[i].empty())) {
-      ssaInsn *op = new ssaInsn();
+      ssaInsn *op = new ssaInsn(i);
       regTbl.gprTbl[i] = op;
       op->makePrettyName();          
       ssaInsns.push_back(op);
