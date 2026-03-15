@@ -45,6 +45,9 @@ public:
   void addUse(ssaInsn *u) {
     uses.insert(u);
   }
+  bool noUses() const {
+    return uses.empty();
+  }
   const std::set<ssaInsn*>& getUses() const {
     return uses;
   }

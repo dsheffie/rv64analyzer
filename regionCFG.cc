@@ -450,6 +450,25 @@ bool regionCFG::analyzeGraph() {
   entryBlock->traverseAndRename(this);
   entryBlock->patchUpPhiNodes(this);
 
+  /* will generate phis with no uses, just erase them */
+  for(cfgBasicBlock *bb : cfgBlocks) {
+    for(auto it = bb->phiNodes.begin(); it != bb->phiNodes.end(); ) {
+      phiNode *phi = *it;
+      if(phi->noUses()) {
+	//std::cout << phi->getName() << " : this phi has no uses\n";
+	it = bb->phiNodes.erase(it);
+	auto it2 = std::find(bb->ssaInsns.begin(), bb->ssaInsns.end(),
+			     static_cast<ssaInsn*>(phi));
+	assert(it2 != bb->ssaInsns.end());
+	bb->ssaInsns.erase(it2);
+	delete phi;	
+      }
+      else {
+	it++;
+      }
+    }
+  }
+  
  
   dumpIR();
   dumpRISCV();
