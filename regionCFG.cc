@@ -285,6 +285,7 @@ bool regionCFG::allBlocksReachable(cfgBasicBlock *root) {
   std::queue<cfgBasicBlock*> q;
   std::set<cfgBasicBlock*> v;
   std::list<cfgBasicBlock*> l;
+  
   q.push(root);
   while(not(q.empty())) {
     cfgBasicBlock *cbb = q.front();
@@ -300,7 +301,7 @@ bool regionCFG::allBlocksReachable(cfgBasicBlock *root) {
 
   for(auto bb : cfgBlocks) {
     if(v.find(bb) == v.end()) {
-      std::cout << "couldnt find block "
+      std::cout << "couldnt reach block "
 		<< std::hex
 		<< bb->getEntryAddr()
 		<< std::dec
@@ -315,8 +316,7 @@ bool regionCFG::allBlocksReachable(cfgBasicBlock *root) {
 }
 
 
-bool regionCFG::buildCFG(std::vector<std::vector<basicBlock*> > &regions) {
-  std::set<basicBlock*> heads;
+bool regionCFG::buildCFG(std::vector<basicBlock*> &region) {
   std::map<basicBlock*, cfgBasicBlock*> cfgMap;
   std::vector<basicBlock*> blockvec;
   std::set<basicBlock*> discovered; 
@@ -325,24 +325,22 @@ bool regionCFG::buildCFG(std::vector<std::vector<basicBlock*> > &regions) {
   
   currCFG = this;
   size_t maxInsnInBB = 0;
-  for(size_t i = 0, n = regions.size(); i < n; i++) {
-    heads.insert(regions[i][0]);
-    for(size_t j = 0, nn=regions[i].size(); j < nn; j++) {
-      basicBlock *bb = regions[i][j];
-      if(bb==nullptr) die();
-      blocks.insert(bb);
-      maxInsnInBB = std::max(maxInsnInBB, bb->getNumIns());
+  head = nullptr;
+  for(size_t j = 0, nn=region.size(); j < nn; j++) {
+    basicBlock *bb = region[j];
+    if(bb==nullptr) die();
+    
+    if(bb->preds.size() == 0) {
+      assert(head == nullptr);
+      head = bb;
     }
+    
+    blocks.insert(bb);
+    maxInsnInBB = std::max(maxInsnInBB, bb->getNumIns());
   }
   std::cout << maxInsnInBB << " max instructions in a bb\n";
 
   
-  if(heads.size()!=1) {
-    printf("something has gone horribly wrong: %zu region heads in cfg\n", 
-	   heads.size());
-    die();
-  }
-  head = regions.at(0).at(0);
   if(head==nullptr) {
     die();
   }
@@ -402,6 +400,11 @@ bool regionCFG::buildCFG(std::vector<std::vector<basicBlock*> > &regions) {
   }
 
   if(not(allBlocksReachable(cfgMap[head]))) {
+    //for(size_t i = 0; i < cfgBlocks.size(); i++) {
+    //cfgBasicBlock *cbb = cfgBlocks[i];
+    //std::cout << *cbb << "\n";
+    //}
+    
     die();
   }
 

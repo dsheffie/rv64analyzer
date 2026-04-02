@@ -178,7 +178,7 @@ protected:
   regionCFG(std::string name, std::map<int64_t, double> &m,
 	    std::map<uint64_t,uint64_t> &c, std::list<pipeline_record> &r);
   ~regionCFG();
-  bool buildCFG(std::vector<std::vector<basicBlock*> > &regions);
+  bool buildCFG(std::vector<basicBlock*> &region);
 
   bool analyzeGraph();
   void dumpIR();

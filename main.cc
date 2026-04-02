@@ -118,16 +118,19 @@ void buildCFG(const std::list<inst_record> &trace, std::map<uint64_t,uint64_t> &
       basicBlock::globalEdges[ir.pc][npc]++;
     }
     counts[ir.pc]++;
-#if 0    
-       printf("%lx %s -> %lx (cbb %lx, term %lx, read only %d)\n",
-     	     ir.pc,
-     	     getAsmString(ir.inst, ir.pc).c_str(),
-     	     npc,
-     	     globals::cBB->getEntryAddr(),
-     	     globals::cBB->getTermAddr(),
-     	     globals::cBB->isReadOnly()
-     	     );
+#if 0
+    printf("%lx %s -> %lx (cbb %lx, term %lx, read only %d)\n",
+	   ir.pc,
+	   getAsmString(ir.inst, ir.pc).c_str(),
+	   npc,
+	   globals::cBB->getEntryAddr(),
+	   globals::cBB->getTermAddr(),
+	   globals::cBB->isReadOnly()
+	   );
 #endif
+       //if(0x48ca88 == ir.pc) {
+       //exit(-1);
+       //}
     // }
     
     if( not(globals::cBB->isReadOnly()) ) {
@@ -222,10 +225,10 @@ int main(int argc, char *argv[]) {
     pt.read(pipe);
   }
 
-  std::vector<std::vector<basicBlock*>> regions;
   std::vector<basicBlock*> r;
 
   //create region
+#if 1
   bool merged = false;
   do {
     merged = false;
@@ -239,6 +242,7 @@ int main(int argc, char *argv[]) {
     }
   }
   while(merged);
+#endif
   
   for(auto p : basicBlock::bbMap) {
     //if(p.second->mergableWithSucc()) {
@@ -247,9 +251,8 @@ int main(int argc, char *argv[]) {
     r.push_back(p.second);
   }
   
-  regions.push_back(r);
   regionCFG *cfg = new regionCFG(input, rt.tip, counts, pt.get_records() );
-  cfg->buildCFG(regions);
+  cfg->buildCFG(r);
 
   std::ofstream out("blocks.txt");
   for(auto p : basicBlock::bbMap) {
