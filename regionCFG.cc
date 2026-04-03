@@ -315,6 +315,20 @@ bool regionCFG::allBlocksReachable(cfgBasicBlock *root) {
   return v.size() == cfgBlocks.size();
 }
 
+template <bool use_succs>
+static void dfs(basicBlock *bb, std::set<basicBlock*> &seen, std::list<basicBlock*> &finish) {
+
+  if(seen.find(bb) != seen.end()) {
+    return;
+  }
+  seen.insert(bb);
+  for(basicBlock *nbb : (use_succs ? bb->getSuccs() : bb->getPreds())) {
+    dfs<use_succs>(nbb, seen, finish);
+  }
+  if(use_succs) {
+    finish.push_front(bb);
+  }
+}
 
 bool regionCFG::buildCFG(std::vector<basicBlock*> &region) {
   std::map<basicBlock*, cfgBasicBlock*> cfgMap;
@@ -339,9 +353,39 @@ bool regionCFG::buildCFG(std::vector<basicBlock*> &region) {
     maxInsnInBB = std::max(maxInsnInBB, bb->getNumIns());
   }
   std::cout << maxInsnInBB << " max instructions in a bb\n";
-
   
   if(head==nullptr) {
+    std::set<basicBlock*> succs_seen, preds_seen;
+    std::list<basicBlock*> succs_finish, preds_finish;
+    dfs<true>(region[0], succs_seen, succs_finish);
+
+    std::vector<std::vector<basicBlock*>> sccs;
+    
+    while(not(succs_finish.empty())) {
+      basicBlock *bb = *(succs_finish.begin());
+      dfs<false>(bb, preds_seen, preds_finish);
+      std::vector<basicBlock*> scc;
+      
+      for(basicBlock *pbb : preds_seen) {
+	auto it = std::find(succs_finish.begin(), succs_finish.end(), pbb);
+	if(it != succs_finish.end()) {
+	  succs_finish.erase(it);
+	  scc.push_back(pbb);
+	}
+      }
+      //std::cout << "found scc with " << scc.size() << " bbs\n";
+      //std::cout << "regions.size() = " << region.size() << "\n";      
+      if(scc.size() == region.size()) {
+	head = region[0];	
+	break;
+      }
+      sccs.push_back(scc);
+    }
+    /* do something if region is still null? */
+  }
+
+  if(head == nullptr) {
+    std::cout << "head is still nullptr\n";
     die();
   }
 

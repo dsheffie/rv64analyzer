@@ -139,14 +139,21 @@ public:
   bool hasMONITOR() const {
     return hasmonitor;
   }
-  const std::set<basicBlock*, orderBasicBlocks> &getSuccs() const {
-    return succs;
-  }
+
   void addToCFGRegions(basicBlock *bb) {
     cfgInRegions.insert(bb);
   }
   bool sanityCheck();
   double getTipCycles() const;
+
+  const std::set<basicBlock*, orderBasicBlocks> & getPreds() const {
+    return preds;
+  }
+  
+  const std::set<basicBlock*, orderBasicBlocks> & getSuccs() const {
+    return succs;
+  }  
+  
   static void toposort(basicBlock *src, const std::set<basicBlock*> &valid, std::list<basicBlock*> &ordered);
 };
 
