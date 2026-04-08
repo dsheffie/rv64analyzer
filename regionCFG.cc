@@ -342,6 +342,7 @@ bool regionCFG::buildCFG(std::vector<basicBlock*> &region) {
   head = nullptr;
   for(size_t j = 0, nn=region.size(); j < nn; j++) {
     basicBlock *bb = region[j];
+    
     if(bb==nullptr) die();
     
     if(bb->preds.size() == 0) {
@@ -384,6 +385,32 @@ bool regionCFG::buildCFG(std::vector<basicBlock*> &region) {
     /* do something if region is still null? */
   }
 
+  if(head == nullptr) {
+    basicBlock *best = nullptr;
+    uint64_t max_reachable = 0;
+    
+    for(size_t j = 0, nn=region.size(); j < nn; j++) {
+      basicBlock *bb = region[j];
+      std::set<basicBlock*> seen;
+      std::list<basicBlock*> finish;
+      dfs<true>(bb, seen, finish);
+      if(seen.size() > max_reachable) {
+	max_reachable = seen.size();
+	std::cout << "max_reachable = " << max_reachable << "\n";
+	best = bb;
+      }
+    }
+    head = best;
+    std::set<basicBlock*> seen;
+    std::list<basicBlock*> finish;
+    dfs<true>(best, seen, finish);
+    //remove anything not in seen
+    blocks.clear();
+    for(auto bb : seen) {
+      blocks.insert(bb);
+    }
+  }
+    
   if(head == nullptr) {
     std::cout << "head is still nullptr\n";
     die();

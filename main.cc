@@ -174,6 +174,7 @@ int main(int argc, char *argv[]) {
   retire_trace rt;
   pipeline_reader pt;
   std::string input, pipe;
+  bool prune;
   std::map<uint64_t,uint64_t> counts;
 
   char *rp = realpath(argv[0], nullptr);
@@ -186,7 +187,7 @@ int main(int argc, char *argv[]) {
       ("help", "Print help messages")
       ("in,i", po::value<std::string>(&input), "input dump")
       ("pipe,p", po::value<std::string>(&pipe), "pipe dump")
-     
+      ("prune", po::value<bool>(&prune)->default_value(false), "prune trace")
       ; 
     po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -205,6 +206,55 @@ int main(int argc, char *argv[]) {
   boost::archive::binary_iarchive rt_(trace_ifs);
   rt_ >> rt;
 
+  if(prune) {
+    bool in_neg = false;
+    const std::list<inst_record> &recs = rt.get_records();
+    uint64_t best_start = 0, best_len = 0, curr_start = 0;
+  
+    for(auto it = recs.begin(), E = recs.end(); it != E; ++it ) {
+      auto &r = *it;
+      bool neg_addr = (r.vpc >> 63) or ((r.vpc >= 0x200000) and (r.vpc <= 0x201000));
+      if(neg_addr) {
+	if(not(in_neg)) {
+	  uint64_t num_user = std::distance(recs.begin(), it) - curr_start;
+	  //std::cout << "num_user = " << num_user << "\n";
+	  if(num_user > best_len) {
+	    best_len = num_user;
+	    best_start = curr_start;
+	  }
+	  //std::cout << "negative address space entered at "
+	  //<< std::distance(recs.begin(), it)
+	  //<< " icnt\n";
+	}
+	in_neg = true;
+      }
+      else {
+	if(in_neg) {
+	  //std::cout << "negative address space left at "
+	  //<< std::distance(recs.begin(), it)
+	  //<< " icnt\n";
+	  curr_start = std::distance(recs.begin(), it);
+	}
+	in_neg = false;
+      }
+    }
+
+    //std::cout << "best_start = " << best_start << "\n";
+    // std::cout << "best_len = " << best_len << "\n";
+
+    std::list<inst_record> records;
+    size_t p = 0;
+    for(auto r : recs) {
+      if((p >= best_start) and (p < (best_start+best_len))) {
+	records.push_back(r);
+      }
+      ++p;
+    }
+    //std::cout << "records.size() =  " << records.size() << "\n";
+    rt.records = records;
+  }
+
+  
   double tip_cycles = 0.0;
   for(auto p : rt.tip) {
     tip_cycles += p.second;
