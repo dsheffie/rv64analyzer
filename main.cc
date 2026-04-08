@@ -244,12 +244,23 @@ int main(int argc, char *argv[]) {
 
     std::list<inst_record> records;
     size_t p = 0;
+    std::map<int64_t, uint64_t> org_icnts, new_icnts;
     for(auto r : recs) {
       if((p >= best_start) and (p < (best_start+best_len))) {
 	records.push_back(r);
+	new_icnts[r.pc]++;      
       }
+      org_icnts[r.pc]++;      
       ++p;
     }
+    /* scale tip data based on ratio of old icnt and new icnt */
+    std::map<int64_t, double> tip;
+    for(auto p : new_icnts) {
+      uint64_t nc = p.second;
+      uint64_t oc = org_icnts.at(p.first);
+      tip[p.first] = (rt.tip.at(p.first) / oc) * nc;
+    }
+    rt.tip = tip;
     //std::cout << "records.size() =  " << records.size() << "\n";
     rt.records = records;
   }
