@@ -174,7 +174,7 @@ int main(int argc, char *argv[]) {
   retire_trace rt;
   pipeline_reader pt;
   std::string input, pipe;
-  bool prune;
+  bool prune, merge;
   std::map<uint64_t,uint64_t> counts;
 
   char *rp = realpath(argv[0], nullptr);
@@ -188,6 +188,7 @@ int main(int argc, char *argv[]) {
       ("in,i", po::value<std::string>(&input), "input dump")
       ("pipe,p", po::value<std::string>(&pipe), "pipe dump")
       ("prune", po::value<bool>(&prune)->default_value(false), "prune trace")
+      ("merge", po::value<bool>(&merge)->default_value(true), "merge basicblocks when legal")      
       ; 
     po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -264,7 +265,7 @@ int main(int argc, char *argv[]) {
     //std::cout << "records.size() =  " << records.size() << "\n";
     rt.records = records;
   }
-
+  std::cout << std::hex << "start pc : " << std::hex << rt.get_records().begin()->pc << std::dec << "\n";
   
   double tip_cycles = 0.0;
   for(auto p : rt.tip) {
@@ -289,21 +290,21 @@ int main(int argc, char *argv[]) {
   std::vector<basicBlock*> r;
 
   //create region
-#if 1
-  bool merged = false;
-  do {
-    merged = false;
-    for(auto p : basicBlock::bbMap) {    
-      bool m = p.second->mergeWithSucc();
-      if(m) {
-	merged = true;
-	std::cout << "found merging candidate\n";
-	break;
+  if(merge) {
+    bool merged = false;
+    do {
+      merged = false;
+      for(auto p : basicBlock::bbMap) {    
+	bool m = p.second->mergeWithSucc();
+	if(m) {
+	  merged = true;
+	  std::cout << "found merging candidate\n";
+	  break;
+	}
       }
     }
+    while(merged);
   }
-  while(merged);
-#endif
   
   for(auto p : basicBlock::bbMap) {
     //if(p.second->mergableWithSucc()) {

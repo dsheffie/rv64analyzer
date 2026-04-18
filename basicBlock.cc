@@ -121,6 +121,11 @@ void basicBlock::setReadOnly() {
 
 
 bool basicBlock::fallsThru() const {
+  if(getNumIns() == 0) {
+    std::cout << *this;
+    assert(0);
+    return false;
+  }
   bool termIsBranch = isBranchOrJump(vecIns.at(getNumIns()-1).inst);
   return not(termIsBranch);
 }

@@ -319,6 +319,7 @@ uint64_t cfgBasicBlock::getEntryAddr() const {
     return rawInsns.at(0).pc;
   }
   else if(bb != nullptr) {
+    std::cout << "entry basicblock block has no instructions!\n";
     die();
     return bb->getEntryAddr();
   }
