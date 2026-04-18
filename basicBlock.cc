@@ -145,6 +145,17 @@ bool basicBlock::mergableWithSucc() const {
   return true;
 }
 
+
+void basicBlock::removeEmpty() {
+  assert(vecIns.empty());
+  assert(succs.size() == 0);
+  for(auto pbb : preds) {
+    auto it = pbb->succs.find(this);
+    assert(it != pbb->succs.end());
+    pbb->succs.erase(it);    
+  }
+}
+
 bool basicBlock::mergeWithSucc() {
   if(not(mergableWithSucc())) {
     return false;

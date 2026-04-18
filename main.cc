@@ -289,6 +289,23 @@ int main(int argc, char *argv[]) {
 
   std::vector<basicBlock*> r;
 
+  std::list<basicBlock*> e;
+  for(auto p : basicBlock::bbMap) {
+    basicBlock *bb = p.second;
+    if(bb->empty()) {
+      e.push_back(bb);
+    }
+  }
+
+  for(basicBlock *ebb : e) {
+    ebb->removeEmpty();    
+    auto it = basicBlock::bbMap.find(ebb->entryAddr);
+    basicBlock::bbMap.erase(it);
+    delete ebb;
+  }
+
+  
+  
   //create region
   if(merge) {
     bool merged = false;

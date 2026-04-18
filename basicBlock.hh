@@ -81,6 +81,9 @@ public:
   void addIns(uint32_t inst, uint64_t addr, uint64_t vpc);
   basicBlock(uint64_t entryAddr, basicBlock *prev);
   basicBlock(uint64_t entryAddr);
+  bool empty() const {
+    return vecIns.empty();
+  }
   ~basicBlock();
   void dropCompiledCode();
   static basicBlock *bbInBlock(uint64_t pc);
@@ -105,6 +108,7 @@ public:
   uint64_t getTermAddr() const {
     return termAddr;
   }
+  void removeEmpty();
   void setTermAddr(uint64_t termAddr) {
     if(this->termAddr == 0) {
       this->termAddr = termAddr;
