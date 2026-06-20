@@ -132,7 +132,19 @@ void buildCFG(const std::list<inst_record> &trace, std::map<uint64_t,uint64_t> &
        //exit(-1);
        //}
     // }
-    
+
+    /* Resync cBB after a non-local control transfer (exception/interrupt/
+     * indirect jump). The read-only replay only advances cBB at its termAddr,
+     * so if execution leaves cBB before its terminator and re-enters an
+     * already-built block elsewhere, cBB gets stuck stale and that block's
+     * successor edges are silently dropped. When ir.pc belongs to a different
+     * built block than cBB, snap to it. */
+    if(globals::cBB->isReadOnly()) {
+      basicBlock *cur = basicBlock::bbInBlock(ir.pc);
+      if(cur != nullptr and cur != globals::cBB) {
+        globals::cBB = cur;
+      }
+    }
     if( not(globals::cBB->isReadOnly()) ) {
       if(basicBlock::bbInBlock(ir.pc) != nullptr) {
 	/*std::cout << *(globals::cBB); */
